@@ -1,52 +1,65 @@
 const express = require("express");
 const cors = require("cors");
 
+// ✅ New additions (safe)
+const multer = require("multer");
+const fs = require("fs");
+const mammoth = require("mammoth");
+const XLSX = require("xlsx");
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+const upload = multer({ storage });
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// ✅ Home route
+// ✅ Keep your existing routes
 app.get("/", (req, res) => {
   res.send("AI Office Server Running 🚀");
 });
 
-
-// 🔥 👉 REPLACE OLD /ai-edit WITH THIS
+// ✅ Keep your AI route (DON’T REMOVE)
 app.post("/ai-edit", (req, res) => {
-  let { text, action } = req.body;
+  // your AI logic here
+});
 
-  if (!text) return res.send("");
+app.post("/upload", upload.single("file"), (req, res) => {
+  res.json({ file: req.file.filename });
+});
 
-  let sentences = text.split(".").map(s => s.trim()).filter(s => s);
+app.get("/read/:filename", async (req, res) => {
+  const filePath = `uploads/${req.params.filename}`;
+  const ext = req.params.filename.split(".").pop();
 
-  if (action === "summarize") {
-    res.send(sentences.slice(0, 2).join(". ") + ".");
-  }
-
-  else if (action === "rewrite") {
-    res.send(sentences.reverse().join(". ") + ".");
-  }
-
-  else if (action === "grammar") {
-    let fixed = sentences.map(s => {
-      s = s.charAt(0).toUpperCase() + s.slice(1);
-      s = s.replace(/\bi\b/g, "I");
-      s = s.replace(/\s+/g, " ");
-      return s;
-    });
-
-    res.send(fixed.join(". ") + ".");
-  }
-
-  else {
-    res.send(text);
+  try {
+    if (ext === "docx") {
+      const result = await mammoth.extractRawText({ path: filePath });
+      res.json({ content: result.value });
+    } 
+    else if (ext === "xlsx") {
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet);
+      res.json({ content: JSON.stringify(data, null, 2) });
+    } 
+    else {
+      const data = fs.readFileSync(filePath, "utf8");
+      res.json({ content: data });
+    }
+  } catch (err) {
+    res.status(500).send("Error reading file");
   }
 });
 
-
-// ✅ Start server (always last)
+// ✅ Server start (always last)
 app.listen(3000, () => {
   console.log("Server running on http://localhost:3000");
 });
