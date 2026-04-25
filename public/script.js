@@ -217,6 +217,8 @@ async function loadFiles() {
       return;
     }
 
+    files.sort((a, b) => getFileTime(b.lastModified) - getFileTime(a.lastModified));
+
     if (countEl) {
       countEl.textContent = `${files.length} file${files.length !== 1 ? "s" : ""}`;
     }
@@ -467,7 +469,7 @@ function buildTable(files) {
   const rows = files.map((f, i) => {
     // our backend returns { name: "...", size: 1234 }
     const t = getFileType(f.name || f.filename);
-    const mod = f.modified || f.lastModified || f.updatedAt || '—';
+    const mod = formatLastModified(f.lastModified || f.modified || f.updatedAt);
     const name = f.name || f.filename || 'Untitled';
     const jsName = escJsString(name);
     return `
@@ -479,7 +481,7 @@ function buildTable(files) {
         </div>
       </td>
       <td class="file-date">${fileTypeLabel(t)}</td>
-      <td class="file-date">${escHtml(String(mod))}</td>
+      <td class="file-date">${mod}</td>
       <td>
         <div class="file-actions">
           <button class="action-btn" title="Open" onclick="handleOpen('${jsName}')">
@@ -525,6 +527,52 @@ function escHtml(s) {
 
 function escJsString(s) {
   return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+}
+
+function getFileTime(value) {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function formatLastModified(value) {
+  const time = getFileTime(value);
+  if (!time) return "-";
+
+  const date = new Date(time);
+  const absolute = date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+  const relative = getRelativeTime(date);
+
+  return `
+    <span title="${escHtml(absolute)}">
+      ${escHtml(absolute)}
+      <small class="file-relative-time">${escHtml(relative)}</small>
+    </span>`;
+}
+
+function getRelativeTime(date) {
+  const diff = Date.now() - date.getTime();
+  if (!Number.isFinite(diff)) return "";
+  if (diff < 0) return "Just now";
+
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} mo${months === 1 ? "" : "s"} ago`;
+
+  const years = Math.floor(days / 365);
+  return `${years} yr${years === 1 ? "" : "s"} ago`;
 }
 
 /* ── File actions — bridge to YOUR functions ── */

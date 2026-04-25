@@ -4,6 +4,7 @@ const cors = require("cors");
 // ✅ New additions (safe)
 const multer = require("multer");
 const fs = require("fs");
+const path = require("path");
 const mammoth = require("mammoth");
 const XLSX = require("xlsx");
 const HTMLtoDOCX = require("html-to-docx");
@@ -154,18 +155,25 @@ app.post("/save", async (req, res) => {
 
 app.get("/files", (req, res) => {
   try {
-    const files = fs.readdirSync("uploads");
+    const folder = path.join(__dirname, "uploads");
+    const files = fs.readdirSync(folder);
 
     const fileList = files.map(file => {
-      const stats = fs.statSync(`uploads/${file}`);
+      const filePath = path.join(folder, file);
+      const stats = fs.statSync(filePath);
+      const ext = path.extname(file).replace(".", "").toLowerCase();
+
       return {
         name: file,
-        size: stats.size
+        size: stats.size,
+        type: ext || "file",
+        lastModified: stats.mtime
       };
-    });
+    }).sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
 
     res.json(fileList);
   } catch (err) {
+    console.error("Error reading files", err);
     res.status(500).send("Error reading files");
   }
 });
