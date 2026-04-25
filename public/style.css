@@ -3,7 +3,7 @@ body {
   font-family: "Segoe UI", sans-serif;
   background: #f5f6fa;
 }
-  
+
 /* 🔴 Ribbon */
 .ribbon {
   background: #d32f2f;
@@ -61,13 +61,39 @@ body {
 }
 
 /* Editor */
+.toolbar {
+  width: 70%;
+  margin: 16px auto 12px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e6ef;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(47, 53, 66, 0.08);
+}
+
+.toolbar button {
+  min-width: 42px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #dfe4ea;
+  font-weight: 700;
+}
+
+.toolbar button:hover {
+  background: #ced6e0;
+}
+
 #preview {
   background: white;
   width: 70%;
   margin: auto;
   padding: 30px;
   min-height: 500px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 /* AI */
@@ -87,13 +113,81 @@ textarea {
 /* 🔴 File Panel */
 .file-panel {
   background: #fff;
-  padding: 10px;
+  padding: 16px;
   border-top: 1px solid #ddd;
 }
 
+#fileList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
 #fileList li {
-  padding: 8px;
-  background: #f1f2f6;
-  margin: 5px 0;
-  border-radius: 5px;
+  margin: 10px 0;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #f8f9fc;
+  border: 1px solid #e2e6ef;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(47, 53, 66, 0.08);
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-icon {
+  font-size: 22px;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #2f3542;
+}
+
+.file-size {
+  font-size: 13px;
+  color: #747d8c;
+  margin-top: 2px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #dfe4ea;
+}
+
+.actions button:hover {
+  background: #ced6e0;
+}
+
+/* Global button hover effect */
+button {
+  transition: transform 0.1s ease-in-out;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+#fileList li.active .file-card {
+  background: #ffe5e5;
+  border-color: #ffb8b8;
 }

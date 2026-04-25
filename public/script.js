@@ -3,10 +3,15 @@ function showTab(tab) {
   document.getElementById(tab).style.display = "block";
 }
 
+function formatText(cmd) {
+  document.execCommand(cmd, false, null);
+}
+
 // Default open
 showTab("editor");
 
 let currentFile = "";
+const preview = document.getElementById("preview");
 
 // Upload file
 async function uploadFile(event) {
@@ -37,16 +42,29 @@ async function uploadFile(event) {
 
 // Load file content
 async function loadFile() {
+  if (!currentFile) return;
+
   try {
+    if (!currentFile.trim()) return;
+
     const res = await fetch(`/read/${currentFile}`);
+    if (!res.ok) throw new Error("Failed to load file");
+
     const data = await res.json();
 
     if (data.type === "text") {
-      document.getElementById("preview").innerText = data.content;
-    } 
+      preview.innerHTML = data.content;
+    }
     else if (data.type === "image") {
-      document.getElementById("preview").innerHTML = 
+      preview.innerHTML =
         `<img src="${data.content}" style="max-width:100%">`;
+    }
+    else if (data.type === "pdf") {
+      preview.innerHTML =
+        `<iframe src="${data.content}" width="100%" height="500px"></iframe>`;
+    }
+    else {
+      preview.innerText = "Preview not supported for this file type.";
     }
   } catch (err) {
     alert("Error loading file");
@@ -56,14 +74,14 @@ async function loadFile() {
 
 // Apply AI output to editor
 function applyToEditor() {
-  document.getElementById("preview").innerText =
-    document.getElementById("output").innerText;
+  preview.innerHTML =
+    document.getElementById("output").innerHTML;
 }
 
 // Use current editor/preview text as AI input
 function useEditorText() {
   document.getElementById("input").value =
-    document.getElementById("preview").innerText;
+    preview.innerText;
 }
 
 // Toggle dark mode
@@ -76,21 +94,38 @@ async function runAI() {
   const output = document.getElementById("output");
   output.innerText = "Processing... ⏳";
 
-  const text = document.getElementById("input").value;
+  const text =
+    document.getElementById("input").value ||
+    preview.innerHTML;
+
+  if (!text.trim()) {
+    output.innerText = "Enter text first or load a file!";
+    return;
+  }
   const action = document.getElementById("action").value;
 
-  const res = await fetch("/ai-edit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, action })
-  });
+  try {
+    const res = await fetch("/ai-edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, action })
+    });
 
-  const result = await res.text();
-  output.innerText = result;
+    if (!res.ok) {
+      output.innerText = "AI failed!";
+      return;
+    }
+
+    const result = await res.text();
+    output.innerText = result;
+  } catch (err) {
+    output.innerText = "Error connecting to AI!";
+    console.error("AI Error:", err);
+  }
 }
 
 async function saveFile() {
-  const content = document.getElementById("preview").innerText;
+  const content = preview.innerHTML;
 
   if (!currentFile) {
     alert("No file loaded!");
@@ -125,13 +160,31 @@ async function loadFiles() {
     list.innerHTML = "";
 
     files.forEach(file => {
+      let icon = "📄";
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) icon = "🖼";
+      else if (['xls', 'xlsx', 'csv'].includes(ext)) icon = "📊";
+
       const li = document.createElement("li");
+      if (file.name === currentFile) {
+        li.classList.add("active");
+      }
 
       li.innerHTML = `
-        ${file.name} (${file.size} bytes)
-        <button onclick="openFile('${file.name}')">Open</button>
-        <button onclick="deleteFile('${file.name}')">Delete</button>
-        <button onclick="downloadFile('${file.name}')">Download</button>
+        <div class="file-card">
+          <div class="file-meta">
+            <span class="file-icon">${icon}</span>
+            <div>
+              <div class="file-name">${file.name}</div>
+              <div class="file-size">${(file.size / 1024).toFixed(2)} KB</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button onclick="openFile('${file.name}')">Open</button>
+            <button onclick="deleteFile('${file.name}')">Delete</button>
+            <button onclick="downloadFile('${file.name}')">Download</button>
+          </div>
+        </div>
       `;
 
       list.appendChild(li);
@@ -145,16 +198,26 @@ async function loadFiles() {
 function openFile(name) {
   currentFile = name;
   loadFile();
+
+  document.querySelectorAll("#fileList li").forEach(li => {
+    li.classList.remove("active");
+  });
+
+  if (window.event) {
+    window.event.target.closest("li").classList.add("active");
+  }
 }
 
 // Delete file
 async function deleteFile(name) {
-  await fetch(`/delete/${name}`, {
-    method: "DELETE"
-  });
+  const res = await fetch(`/delete/${name}`, { method: "DELETE" });
 
-  alert("File deleted!");
-  loadFiles();
+  if (res.ok) {
+    alert("File deleted!");
+    loadFiles();
+  } else {
+    alert("Delete failed!");
+  }
 }
 
 // Download file

@@ -1,79 +1,87 @@
 ﻿<!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>AI Office</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<!-- 🔴 TOP RIBBON -->
-<div class="ribbon">
-  <div class="group">
-    <span>File</span>
-    <button>📄 New</button>
-    <button>📂 Open</button>
-  </div>
-
-  <div class="group">
-    <span>Edit</span>
-    <button onclick="formatText('bold')">B</button>
-    <button onclick="formatText('italic')">I</button>
-  </div>
-
-  <div class="group">
-    <span>AI</span>
-    <button onclick="runAI()">⚡ AI</button>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- 🔴 SIDEBAR -->
-  <div class="sidebar">
-    <h2>AI Office</h2>
-    <button onclick="showTab('editor')">📄 Editor</button>
-    <button onclick="showTab('ai')">🤖 AI Tools</button>
-  </div>
-
-  <!-- 🔴 MAIN WORKSPACE -->
-  <div class="workspace">
-
-    <!-- EDITOR -->
-    <div id="editor" class="tab">
-      <input type="file" onchange="uploadFile(event)">
-      <div id="preview" contenteditable="true"></div>
+  <!-- 🔴 TOP RIBBON -->
+  <div class="ribbon">
+    <div class="group">
+      <span>File</span>
+      <button>📄 New</button>
+      <button>📂 Open</button>
     </div>
 
-    <!-- AI -->
-    <div id="ai" class="tab">
-      <textarea id="input"></textarea>
+    <div class="group">
+      <span>Edit</span>
+      <button onclick="formatText('bold')">B</button>
+      <button onclick="formatText('italic')">I</button>
+    </div>
 
-      <div class="ai-controls">
-        <select id="action">
-          <option value="summarize">Summarize</option>
-          <option value="rewrite">Rewrite</option>
-          <option value="grammar">Fix Grammar</option>
-        </select>
+    <div class="group">
+      <span>AI</span>
+      <button onclick="runAI()">⚡ AI</button>
+    </div>
+  </div>
 
-        <button onclick="runAI()">⚡ Run AI</button>
+  <div class="container">
+
+    <!-- 🔴 SIDEBAR -->
+    <div class="sidebar">
+      <h2>AI Office</h2>
+      <button onclick="showTab('editor')">📄 Editor</button>
+      <button onclick="showTab('ai')">🤖 AI Tools</button>
+    </div>
+
+    <!-- 🔴 MAIN WORKSPACE -->
+    <div class="workspace">
+
+      <!-- EDITOR -->
+      <div id="editor" class="tab">
+        <input type="file" onchange="uploadFile(event)">
+        <div class="toolbar">
+          <button onclick="formatText('bold')">B</button>
+          <button onclick="formatText('italic')">I</button>
+          <button onclick="formatText('underline')">U</button>
+        </div>
+        <div id="preview" contenteditable="true"></div>
       </div>
 
-      <div id="output"></div>
+      <!-- AI -->
+      <div id="ai" class="tab">
+        <textarea id="input"></textarea>
 
-      <button onclick="applyToEditor()">Apply</button>
-      <button onclick="useEditorText()">Use Editor</button>
+        <div class="ai-controls">
+          <select id="action">
+            <option value="summarize">Summarize</option>
+            <option value="rewrite">Rewrite</option>
+            <option value="grammar">Fix Grammar</option>
+          </select>
+
+          <button onclick="runAI()">⚡ Run AI</button>
+        </div>
+
+        <div id="output"></div>
+
+        <button onclick="applyToEditor()">Apply</button>
+        <button onclick="useEditorText()">Use Editor</button>
+      </div>
+
     </div>
-
   </div>
-</div>
 
-<!-- 🔴 FILE PANEL -->
-<div class="file-panel">
-  <h3>📂 Files</h3>
-  <ul id="fileList"></ul>
-</div>
+  <!-- 🔴 FILE PANEL -->
+  <div class="file-panel">
+    <h3>📂 Files</h3>
+    <ul id="fileList"></ul>
+  </div>
 
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
+
 </html>
