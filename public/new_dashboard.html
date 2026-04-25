@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Office — Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+
+  <!-- ─── SIDEBAR ─────────────────────────────── -->
+  <aside class="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">AI</div>
+      <div class="logo-text"><span>AI</span> Office</div>
+    </div>
+
+    <!-- Main Menu -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Menu</div>
+
+      <div class="nav-item active" onclick="setNav(this, 'dashboard'); showTab('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+        Dashboard
+      </div>
+
+      <div class="nav-item" onclick="setNav(this, 'recent'); showTab('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        Recent Files
+      </div>
+
+      <div class="nav-item" onclick="setNav(this,'editor'); showTab('editor')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        Editor
+      </div>
+
+      <div class="nav-item" onclick="setNav(this,'ai'); showTab('ai')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a10 10 0 1 0 10 10" />
+          <path d="M12 6v6l4 2" />
+          <circle cx="19" cy="5" r="3" />
+        </svg>
+        AI Tools
+      </div>
+
+      <div class="nav-item" onclick="setNav(this,'pdf'); showTab('pdf-viewer-tab')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
+        PDF Viewer
+      </div>
+    </div>
+
+    <!-- Tools -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Tools</div>
+
+      <div class="nav-item disabled" data-tooltip="Coming Soon">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M9 21V9" />
+        </svg>
+        Templates
+        <span class="nav-badge">Soon</span>
+      </div>
+
+      <div class="nav-item disabled" data-tooltip="Coming Soon">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+        </svg>
+        Spreadsheet
+        <span class="nav-badge">Soon</span>
+      </div>
+
+      <div class="nav-item disabled" data-tooltip="Coming Soon">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        Presentation
+        <span class="nav-badge">Soon</span>
+      </div>
+    </div>
+
+    <!-- Cloud / Storage -->
+    <div class="sidebar-storage">
+      <div class="storage-header">
+        <span class="storage-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+          </svg>
+          Storage
+        </span>
+        <span class="storage-used" id="storage-used-pct">34%</span>
+      </div>
+      <div class="storage-bar">
+        <div class="storage-bar-fill" id="storage-bar-fill"></div>
+      </div>
+      <div class="storage-detail" id="storage-detail">3.4 GB of 10 GB used</div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN WRAPPER ───────────────────────── -->
+  <div class="main-wrapper">
+
+    <!-- HEADER -->
+    <header class="header">
+      <!-- Left actions -->
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="showUploadModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New
+        </button>
+        <button class="btn btn-ghost" onclick="showTab('dashboard')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          Open
+        </button>
+        <button class="btn btn-ghost" onclick="showUploadModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 16 12 12 8 16" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+          </svg>
+          Upload
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="header-search">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" placeholder="Search files, docs, AI tools…" id="search-input"
+          oninput="handleSearch(this.value)" />
+      </div>
+
+      <!-- Right -->
+      <div class="header-right">
+        <button class="icon-btn" title="Notifications">
+          <div class="notif-dot"></div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </button>
+        <button class="icon-btn" title="Toggle Dark Mode" onclick="toggleDarkMode()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+        <div class="user-avatar" title="Admin">A</div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+      <!-- Greeting -->
+      <div class="greeting">
+        <div class="greeting-title" id="greeting-text">Good morning, Admin 👋</div>
+        <div class="greeting-sub">What would you like to create today?</div>
+      </div>
+
+      <!-- Create New Section -->
+      <div class="create-section">
+        <div class="section-title">Create New</div>
+        <div class="create-grid">
+
+          <!-- Upload File -->
+          <div class="create-card" onclick="showUploadModal()">
+            <div class="card-icon-wrap blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 16 12 12 8 16" />
+                <line x1="12" y1="12" x2="12" y2="21" />
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+              </svg>
+            </div>
+            <div class="card-title">Upload File</div>
+          </div>
+
+          <!-- Blank Document -->
+          <div class="create-card" onclick="showTab('editor')">
+            <div class="card-icon-wrap green">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <div class="card-title">Blank Document</div>
+          </div>
+
+          <!-- AI Assistant -->
+          <div class="create-card" onclick="showTab('ai')">
+            <div class="card-icon-wrap purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.07 4.93a10 10 0 1 1-14.14 0" />
+              </svg>
+            </div>
+            <div class="card-title">AI Assistant</div>
+          </div>
+
+          <!-- Resume — Coming Soon -->
+          <div class="create-card disabled" data-tooltip="This feature is coming soon">
+            <div class="card-icon-wrap orange">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2" />
+                <path d="M7 8h5m-5 4h8m-8 4h6" />
+              </svg>
+            </div>
+            <div class="card-title">Resume</div>
+            <span class="coming-soon-tag">Coming Soon</span>
+          </div>
+
+          <!-- Report — Coming Soon -->
+          <div class="create-card disabled" data-tooltip="This feature is coming soon">
+            <div class="card-icon-wrap gray">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+            </div>
+            <div class="card-title">Report</div>
+            <span class="coming-soon-tag">Coming Soon</span>
+          </div>
+
+          <!-- Templates — Coming Soon -->
+          <div class="create-card disabled" data-tooltip="This feature is coming soon">
+            <div class="card-icon-wrap gray">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+            </div>
+            <div class="card-title">Templates</div>
+            <span class="coming-soon-tag">Coming Soon</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Recent Files Section -->
+      <div class="files-section">
+        <div class="section-title">Recent Files</div>
+        <div class="files-card">
+          <div class="files-header">
+            <div class="files-header-title">All Files</div>
+            <div class="files-count" id="files-count">— files</div>
+          </div>
+          <div id="files-container">
+            <div class="loading-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <aside class="right-panel">
+
+        <!-- AI Assistant -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.07 4.93a10 10 0 1 1-14.14 0" />
+            </svg>
+            AI Assistant
+          </div>
+          <div class="panel-body">
+            <div class="ai-prompt-area" onclick="showTab('ai')" title="Click to open AI Tools">
+              Ask me to summarize, rewrite, fix grammar…
+            </div>
+            <div class="ai-quick-btns">
+              <div class="ai-chip" onclick="showTab('ai')">Summarize</div>
+              <div class="ai-chip" onclick="showTab('ai')">Rewrite</div>
+              <div class="ai-chip" onclick="showTab('ai')">Grammar</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            Quick Actions
+          </div>
+          <div class="panel-body" style="padding: 8px 8px;">
+
+            <div class="quick-action" onclick="showUploadModal()">
+              <div class="qa-icon" style="background:#dbeafe; color:#2563eb;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 16 12 12 8 16" />
+                  <line x1="12" y1="12" x2="12" y2="21" />
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                </svg>
+              </div>
+              <div>
+                <div class="qa-title">Upload File</div>
+                <div class="qa-sub">Add a file to your library</div>
+              </div>
+            </div>
+
+            <div class="quick-action" onclick="showTab('editor')">
+              <div class="qa-icon" style="background:#dcfce7; color:#16a34a;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </div>
+              <div>
+                <div class="qa-title">New Document</div>
+                <div class="qa-sub">Open rich text editor</div>
+              </div>
+            </div>
+
+            <div class="quick-action" onclick="showTab('pdf-viewer-tab')">
+              <div class="qa-icon" style="background:#fef2f2; color:#dc2626;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
+              <div>
+                <div class="qa-title">PDF Viewer</div>
+                <div class="qa-sub">Open PDF tools</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Storage Widget -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+            </svg>
+            Storage
+          </div>
+          <div class="panel-body">
+            <div class="panel-storage-bar">
+              <div class="panel-storage-fill"></div>
+            </div>
+            <div class="panel-storage-text">
+              <span id="panel-storage-used">3.4 GB used</span>
+              <span>10 GB total</span>
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">66% free remaining</p>
+          </div>
+        </div>
+
+      </aside>
+    </main>
+  </div>
+
+  <!-- ─── UPLOAD MODAL ───────────────────────── -->
+  <div class="modal-overlay" id="upload-modal" onclick="closeModalOnOverlay(event)">
+    <div class="modal">
+      <div class="modal-title">
+        Upload File
+        <button class="modal-close" onclick="closeUploadModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="upload-drop" id="upload-drop" onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault(); this.classList.add('dragging')"
+        ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event)">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16" />
+          <line x1="12" y1="12" x2="12" y2="21" />
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+        </svg>
+        <p><strong>Click to browse</strong> or drag & drop here</p>
+        <small>PDF, DOCX, XLSX, Images supported</small>
+      </div>
+
+      <input type="file" id="file-input" multiple onchange="handleFileSelect(this.files)" />
+
+      <div id="upload-file-list" style="margin-bottom:12px; display:none;">
+        <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Selected files:
+        </div>
+        <div id="upload-file-names" style="font-size:12.5px; color:var(--text-primary);"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeUploadModal()">Cancel</button>
+        <button class="btn btn-primary" id="upload-submit-btn" onclick="submitUpload()" disabled
+          style="opacity:.5; cursor:not-allowed;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 16 12 12 8 16" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+          </svg>
+          Upload
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
