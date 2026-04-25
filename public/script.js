@@ -3,8 +3,8 @@ function showTab(tab) {
   document.getElementById(tab).style.display = "block";
 }
 
-function formatText(cmd) {
-  document.execCommand(cmd, false, null);
+function formatText(cmd, value = null) {
+  document.execCommand(cmd, false, value);
 }
 
 // Default open
@@ -53,7 +53,10 @@ async function loadFile() {
     const data = await res.json();
 
     if (data.type === "text") {
-      preview.innerHTML = data.content;
+      preview.innerText = data.content; // Plain text uses innerText
+    }
+    else if (data.type === "docx") {
+      preview.innerHTML = data.content; // DOCX uses innerHTML
     }
     else if (data.type === "image") {
       preview.innerHTML =
@@ -61,7 +64,23 @@ async function loadFile() {
     }
     else if (data.type === "pdf") {
       preview.innerHTML =
-        `<iframe src="${data.content}" width="100%" height="500px"></iframe>`;
+        `<iframe src="${data.content}" width="100%" height="500px" style="border:none;"></iframe>`;
+    }
+    else if (data.type === "excel") {
+      let tableHtml = "<table>";
+      data.content.forEach((row, index) => {
+        tableHtml += "<tr>";
+        row.forEach(cell => {
+          if (index === 0) {
+            tableHtml += `<th>${cell || ''}</th>`;
+          } else {
+            tableHtml += `<td>${cell || ''}</td>`;
+          }
+        });
+        tableHtml += "</tr>";
+      });
+      tableHtml += "</table>";
+      preview.innerHTML = tableHtml;
     }
     else {
       preview.innerText = "Preview not supported for this file type.";
@@ -125,12 +144,14 @@ async function runAI() {
 }
 
 async function saveFile() {
-  const content = preview.innerHTML;
-
   if (!currentFile) {
     alert("No file loaded!");
     return;
   }
+
+  const ext = currentFile.split('.').pop().toLowerCase();
+  // Use innerHTML for rich text formats, innerText for plain text to prevent saving HTML tags
+  const content = (ext === "docx") ? preview.innerHTML : preview.innerText;
 
   const res = await fetch("/save", {
     method: "POST",
@@ -158,6 +179,11 @@ async function loadFiles() {
 
     const list = document.getElementById("fileList");
     list.innerHTML = "";
+
+    if (files.length === 0) {
+      list.innerHTML = "<li><div class='file-card' style='justify-content: center; color: #747d8c;'>No files found</div></li>";
+      return;
+    }
 
     files.forEach(file => {
       let icon = "📄";

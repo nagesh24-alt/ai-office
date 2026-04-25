@@ -90,10 +90,41 @@ body {
 #preview {
   background: white;
   width: 70%;
-  margin: auto;
-  padding: 30px;
-  min-height: 500px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  margin: 20px auto;
+  padding: 60px 80px; /* Real document page margins */
+  min-height: 800px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-family: "Calibri", "Arial", sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #2b2b2b;
+  outline: none; /* Clean look when editing */
+  box-sizing: border-box;
+}
+
+#preview h1 {
+  font-size: 24pt;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 8px;
+  color: #1a1a1a;
+}
+
+#preview h2 {
+  font-size: 18pt;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  color: #2a2a2a;
+}
+
+#preview p {
+  margin-bottom: 1.2em;
+}
+
+#preview ul, #preview ol {
+  margin-bottom: 1.2em;
+  padding-left: 40px;
 }
 
 /* AI */
@@ -190,4 +221,32 @@ button:hover {
 #fileList li.active .file-card {
   background: #ffe5e5;
   border-color: #ffb8b8;
+}
+
+/* Excel Table Styling */
+#preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+#preview th, #preview td {
+  border: 1px solid #e2e6ef;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+#preview th {
+  background-color: #f8f9fc;
+  font-weight: 600;
+  color: #2f3542;
+}
+
+#preview tr:nth-child(even) {
+  background-color: #f9fbfd;
+}
+
+#preview tr:hover {
+  background-color: #f1f3f8;
 }

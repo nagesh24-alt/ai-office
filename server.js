@@ -6,6 +6,7 @@ const multer = require("multer");
 const fs = require("fs");
 const mammoth = require("mammoth");
 const XLSX = require("xlsx");
+const HTMLtoDOCX = require("html-to-docx");
 
 const storage = multer.diskStorage({
   destination: "uploads/",
@@ -23,6 +24,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
 // ✅ Keep your existing routes
 app.get("/", (req, res) => {
@@ -92,22 +94,29 @@ app.get("/read/:filename", async (req, res) => {
   }
 
   try {
-    if (ext === "docx") {
-      const result = await mammoth.extractRawText({ path: filePath });
-      res.json({ type: "text", content: result.value });
+    if (ext === "pdf") {
+      res.json({ type: "pdf", content: `/uploads/${req.params.filename}` });
     }
-
+    else if (ext === "docx") {
+      try {
+        const result = await mammoth.convertToHtml({ path: filePath });
+        res.json({ type: "docx", content: result.value });
+      } catch (err) {
+        console.error("HTML conversion failed, falling back to text", err);
+        const result = await mammoth.extractRawText({ path: filePath });
+        res.json({ type: "docx", content: result.value });
+      }
+    }
     else if (ext === "xlsx") {
       const workbook = XLSX.readFile(filePath);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(sheet);
-      res.json({ type: "text", content: JSON.stringify(data, null, 2) });
+      // Convert to JSON array, preserve raw data for frontend
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      res.json({ type: "excel", content: data });
     }
-
     else if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
       res.json({ type: "image", content: `/uploads/${req.params.filename}` });
     }
-
     else {
       const data = fs.readFileSync(filePath, "utf8");
       res.json({ type: "text", content: data });
@@ -117,17 +126,28 @@ app.get("/read/:filename", async (req, res) => {
   }
 });
 
-app.post("/save", (req, res) => {
+app.post("/save", async (req, res) => {
   const { filename, content } = req.body;
 
   if (!filename) return res.status(400).send("No file");
 
   const filePath = `uploads/${filename}`;
+  const ext = filename.split(".").pop().toLowerCase();
 
   try {
-    fs.writeFileSync(filePath, content);
+    if (ext === "docx") {
+      const fileBuffer = await HTMLtoDOCX(content, null, {
+        table: { row: { cantSplit: true } },
+        footer: true,
+        pageNumber: true,
+      });
+      fs.writeFileSync(filePath, fileBuffer);
+    } else {
+      fs.writeFileSync(filePath, content);
+    }
     res.send("File saved successfully");
   } catch (err) {
+    console.error(err);
     res.status(500).send("Error saving file");
   }
 });
