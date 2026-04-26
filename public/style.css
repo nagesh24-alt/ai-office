@@ -87,12 +87,29 @@ textarea {
 }
 
 .logo-text {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .logo-text span {
   color: #93c5fd;
+}
+
+.logo-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.logo-tagline {
+  color: #9ca3af;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .sidebar-section {
