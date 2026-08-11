@@ -139,6 +139,19 @@
 
                                     </div>
 
+                                    <div id="bulkActionToolbar" class="bulk-action-toolbar" style="display:none;">
+                                        <span id="selectedCount" class="selected-count">0 Selected</span>
+
+                                        <button type="button" onclick="bulkMove()">📂 Move</button>
+                                        <button type="button" onclick="bulkAddTags()">🏷 Tags</button>
+                                        <button type="button" onclick="bulkDownload()">⬇ Download</button>
+                                        <button type="button" onclick="bulkDelete()">🗑 Delete</button>
+
+                                        <button type="button"
+                                                class="bulk-cancel-btn"
+                                                onclick="exitSelectionMode()">✕</button>
+                                    </div>
+
                                     <span class="badge" id="recent-count">
 
                                         0 files

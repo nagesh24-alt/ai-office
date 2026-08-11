@@ -14,6 +14,10 @@ async function parseJsonResponse(response) {
 
 }
 
+let selectionMode = false;
+let selectedFiles = [];
+let currentDashboardFiles = [];
+
 function setProtectedStatusMessage(message, isError = true) {
 
     const status = document.getElementById("protectedStatusMessage");
@@ -25,6 +29,18 @@ function setProtectedStatusMessage(message, isError = true) {
     status.style.display = message ? "block" : "none";
     status.style.color = isError ? "#ff4d4f" : "#22c55e";
 
+}
+
+function updateFileLabel() {
+    const fileInput = document.getElementById("fileInput");
+    const fileLabel = document.getElementById("fileLabel");
+
+    if (!fileInput || !fileLabel) return;
+
+    fileLabel.textContent =
+        fileInput.files.length > 0
+            ? fileInput.files[0].name
+            : "Choose PDF";
 }
 
 async function uploadFile() {
@@ -72,19 +88,21 @@ function formatFileSize(bytes) {
 // Display dashboard table
 function displayDashboard(files) {
 
+    currentDashboardFiles = Array.isArray(files) ? files : [];
+
     const body = document.getElementById("pdfTableBody");
 
     body.innerHTML = "";
 
-    if (!files || files.length === 0) {
+    if (currentDashboardFiles.length === 0) {
         body.innerHTML = "<tr><td colspan='10' style='text-align: center; color: var(--text-muted); padding: 20px;'>No PDFs found.</td></tr>";
-        document.getElementById("recent-count").textContent = "0 files";
+        updateSelectionHeader();
         return;
     }
 
-    document.getElementById("recent-count").textContent = `${files.length} files`;
+    updateSelectionHeader();
 
-    files.forEach(file => {
+    currentDashboardFiles.forEach(file => {
 
         const tags = Array.isArray(file.tags) ? file.tags : [];
         const tagsText = tags.length ? tags.join(", ") : "—";
@@ -93,11 +111,9 @@ function displayDashboard(files) {
 
         row.innerHTML = `
     <td class="view-column">
-        <button
-            class="view-btn"
-            onclick="openPDF('${file.name}')">
-            <i class="fas fa-eye"></i>
-        </button>
+        ${selectionMode
+            ? `<input type="checkbox" class="file-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" ${selectedFiles.includes(file.name) ? "checked" : ""}>`
+            : `<button class="view-btn" onclick="openPDF('${file.name.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>`}
     </td>
 
     <td>📄</td>
@@ -111,7 +127,7 @@ function displayDashboard(files) {
         </a>
     </td>
 
-    <td>${tagsText}</td>
+    <td class="tags-cell">${tagsText}</td>
 
     <td>${formatFileSize(file.size)}</td>
 
@@ -186,11 +202,57 @@ function displayDashboard(files) {
         const menuButton = row.querySelector(".action-menu-btn");
         const menu = row.querySelector(".action-menu");
 
+        const checkbox = row.querySelector(".file-select-checkbox");
+        if (checkbox) {
+            checkbox.addEventListener("change", () => {
+                updateSelectedFile(file.name, checkbox.checked);
+            });
+        }
+
         menuButton.onclick = (e) => {
             e.stopPropagation();
             menu.style.display = (menu.style.display === "block") ? "none" : "block";
         };
     });
+}
+
+function updateSelectedFile(filename, isSelected) {
+    if (isSelected) {
+        if (!selectedFiles.includes(filename)) {
+            selectedFiles.push(filename);
+        }
+    } else {
+        selectedFiles = selectedFiles.filter(file => file !== filename);
+    }
+    updateSelectionHeader();
+}
+
+function updateSelectionHeader() {
+    const counter = document.getElementById("recent-count");
+
+    if (counter) {
+        counter.style.display = selectionMode ? "none" : "inline-flex";
+        counter.textContent = selectionMode
+            ? `${selectedFiles.length} Selected`
+            : `${currentDashboardFiles.length} Files`;
+    }
+    updateBulkActionToolbar();
+}
+
+function updateBulkActionToolbar() {
+    const toolbar = document.getElementById("bulkActionToolbar");
+    const selectedCount = document.getElementById("selectedCount");
+
+    if (!toolbar || !selectedCount) return;
+
+    const count = selectedFiles.length;
+
+    if (count > 0) {
+        toolbar.style.display = "flex";
+        selectedCount.textContent = `${count} Selected`;
+    } else {
+        toolbar.style.display = "none";
+    }
 }
 
 // Open PDF Workspace in a new tab
@@ -924,13 +986,19 @@ function closeSelectMenu() {
 }
 
 function enterSelectionMode() {
+    selectionMode = true;
+    selectedFiles = [];
     document.body.classList.add("selection-mode");
     closeSelectMenu();
+    displayDashboard(currentDashboardFiles);
 }
 
 function selectAllFiles() {
-    const checkboxes = document.querySelectorAll("#pdfTableBody input[type=checkbox]");
-    checkboxes.forEach(cb => cb.checked = true);
+    if (!selectionMode) {
+        enterSelectionMode();
+    }
+    selectedFiles = currentDashboardFiles.map(file => file.name);
+    displayDashboard(currentDashboardFiles);
     closeSelectMenu();
 }
 
@@ -939,7 +1007,12 @@ function selectByTag() {
     if (!tag) return;
     const lowerTag = tag.trim().toLowerCase();
     
-    const checkboxes = document.querySelectorAll("#pdfTableBody input[type=checkbox]");
+    if (!selectionMode) {
+        enterSelectionMode();
+    }
+    selectedFiles = [];
+    updateSelectionHeader();
+    const checkboxes = document.querySelectorAll("#pdfTableBody input.file-select-checkbox");
     checkboxes.forEach(cb => {
         const row = cb.closest("tr");
         if (row) {
@@ -948,6 +1021,7 @@ function selectByTag() {
                 const tags = tagsCell.textContent.split(",").map(t => t.trim().toLowerCase());
                 if (tags.includes(lowerTag)) {
                     cb.checked = true;
+                    updateSelectedFile(cb.dataset.filename, true);
                 }
             }
         }
@@ -956,7 +1030,12 @@ function selectByTag() {
 }
 
 function selectProtected() {
-    const checkboxes = document.querySelectorAll("#pdfTableBody input[type=checkbox]");
+    if (!selectionMode) {
+        enterSelectionMode();
+    }
+    selectedFiles = [];
+    updateSelectionHeader();
+    const checkboxes = document.querySelectorAll("#pdfTableBody input.file-select-checkbox");
     let count = 0;
     checkboxes.forEach(cb => {
         const row = cb.closest("tr");
@@ -964,6 +1043,7 @@ function selectProtected() {
             const statusCell = row.querySelector(".status");
             if (statusCell && statusCell.textContent.toLowerCase().includes("protected")) {
                 cb.checked = true;
+                updateSelectedFile(cb.dataset.filename, true);
                 count++;
             }
         }
@@ -972,6 +1052,163 @@ function selectProtected() {
         alert("No protected PDFs are in the current dashboard list.");
     }
     closeSelectMenu();
+}
+
+function cancelSelection() {
+    exitSelectionMode();
+}
+
+function exitSelectionMode() {
+    selectionMode = false;
+    selectedFiles = [];
+    document.body.classList.remove("selection-mode");
+    closeSelectMenu();
+
+    const toolbar = document.getElementById("bulkActionToolbar");
+    if (toolbar) {
+        toolbar.style.display = "none";
+    }
+
+    loadPDFs();
+}
+
+function bulkMove() {
+    console.log("Bulk Move:", selectedFiles);
+}
+
+function bulkAddTags() {
+    console.log("Bulk Add Tags:", selectedFiles);
+}
+
+function bulkDownload() {
+    console.log("Bulk Download:", selectedFiles);
+}
+
+async function bulkDelete() {
+    if (!selectedFiles || selectedFiles.length === 0) {
+        alert("Please select at least one PDF.");
+        return;
+    }
+
+    const filesToDelete = [...selectedFiles];
+
+    const confirmed = confirm(
+        `Delete ${filesToDelete.length} selected PDF${filesToDelete.length > 1 ? "s" : ""}?`
+    );
+
+    if (!confirmed) return;
+
+    let deletedCount = 0;
+    let failedCount = 0;
+
+    for (const filename of filesToDelete) {
+        try {
+            const response = await fetch(
+                `/pdf/${encodeURIComponent(filename)}`,
+                { method: "DELETE" }
+            );
+
+            const result = await parseJsonResponse(response);
+
+            if (response.ok && result.success) {
+                deletedCount++;
+            } else {
+                failedCount++;
+                console.error(`Failed to delete ${filename}:`, result.message);
+            }
+
+        } catch (error) {
+            failedCount++;
+            console.error(`Error deleting ${filename}:`, error);
+        }
+    }
+
+    // Exit selection mode
+    selectedFiles = [];
+    selectionMode = false;
+
+    const toolbar = document.getElementById("bulkActionToolbar");
+    if (toolbar) {
+        toolbar.style.display = "none";
+    }
+
+    // Refresh dashboard
+    await loadPDFs();
+
+    // Show result
+    if (failedCount === 0) {
+        alert(
+            `${deletedCount} PDF${deletedCount > 1 ? "s" : ""} deleted successfully.`
+        );
+    } else {
+        alert(
+            `${deletedCount} deleted successfully, ${failedCount} failed.`
+        );
+    }
+}
+
+function closeTagsModal() {
+    const modal = document.getElementById("tags-modal");
+
+    if (!modal) return;
+
+    modal.classList.remove("active");
+
+    setTimeout(() => {
+        modal.style.display = "none";
+    }, 250);
+
+    currentFileToEditTags = "";
+}
+
+let currentFileToEditTags = "";
+
+async function submitEditTags(event) {
+    event.preventDefault();
+
+    if (!currentFileToEditTags) {
+        alert("No PDF selected.");
+        return;
+    }
+
+    const input = document.getElementById("tags-input");
+
+    if (!input) {
+        alert("Tags input not found.");
+        return;
+    }
+
+    const tags = input.value
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(Boolean);
+
+    try {
+        const response = await fetch(
+            `/pdf/${encodeURIComponent(currentFileToEditTags)}/tags`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ tags })
+            }
+        );
+
+        const result = await parseJsonResponse(response);
+
+        if (response.ok && result.success) {
+            closeTagsModal();
+            alert(result.message || "Tags saved successfully!");
+            loadPDFs();
+        } else {
+            alert(result.message || "Failed to save tags.");
+        }
+
+    } catch (error) {
+        console.error("Edit Tags Error:", error);
+        alert("Failed to save tags.");
+    }
 }
 
 function filterDocuments() {
