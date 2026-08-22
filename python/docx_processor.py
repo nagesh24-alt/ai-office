@@ -1,3 +1,4 @@
+import json
 import sys
 from docx import Document
 
@@ -22,19 +23,22 @@ def process_docx(file_path):
 
 
 if __name__ == "__main__":
-	if len(sys.argv) < 2:
-		print("Usage: python docx_processor.py <docx_file>")
-		sys.exit(1)
+    if len(sys.argv) < 2:
+        print(json.dumps({
+            "success": False,
+            "error": "DOCX file path is required."
+        }))
+        sys.exit(1)
 
-	file_path = sys.argv[1]
+    file_path = sys.argv[1]
 
-	try:
-		result = process_docx(file_path)
-		print(result)
+    try:
+        result = process_docx(file_path)
+        print(json.dumps(result))
 
-	except Exception as error:
-		print({
-			"success": False,
-			"error": str(error)
-		})
-		sys.exit(1)
+    except Exception as error:
+        print(json.dumps({
+            "success": False,
+            "error": str(error)
+        }))
+        sys.exit(1)

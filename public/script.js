@@ -40,7 +40,7 @@ function updateFileLabel() {
     fileLabel.textContent =
         fileInput.files.length > 0
             ? fileInput.files[0].name
-            : "Choose PDF";
+            : "Choose File";
 }
 
 async function uploadFile() {
@@ -48,7 +48,7 @@ async function uploadFile() {
     const file = document.getElementById("fileInput").files[0];
 
     if (!file) {
-        alert("Please select a PDF.");
+        alert("Please select a file.");
         return;
     }
 
@@ -64,7 +64,9 @@ async function uploadFile() {
 
     if (result.success) {
         alert("Uploaded: " + result.filename);
-        loadPDFs();
+        document.getElementById("fileInput").value = ""; // Clear the input
+        updateFileLabel(); // Reset label
+        loadDocuments();
     } else {
         alert(result.message);
     }
@@ -86,6 +88,87 @@ function formatFileSize(bytes) {
 }
 
 // Display dashboard table
+// Build capability-aware action menu for a document
+function buildActionMenu(file) {
+    const caps = file.capabilities || {};
+    const filename = file.name;
+    const actions = [];
+
+    // View/Preview
+    if (caps.preview) {
+        actions.push(`
+            <button class="preview-btn" onclick="event.stopPropagation(); openDocument('${filename.replace(/'/g, "\\'")}')">
+                👁 View
+            </button>
+        `);
+    }
+
+    // Edit (DOCX only)
+    if (caps.edit) {
+        actions.push(`
+            <button class="edit-btn" onclick="event.stopPropagation(); editDocument('${filename.replace(/'/g, "\\'")}')">
+                ✏ Edit
+            </button>
+        `);
+    }
+
+    // Manage Tags
+    if (caps.tags) {
+        actions.push(`
+            <button class="tags-btn" onclick="event.stopPropagation(); openTagManager('${filename.replace(/'/g, "\\'")}')">
+                🏷 Tags
+            </button>
+        `);
+    }
+
+    // Move
+    if (caps.move) {
+        actions.push(`
+            <button class="move-btn" onclick="event.stopPropagation(); moveDashboardPDF('${filename.replace(/'/g, "\\'")}')">
+                📂 Move
+            </button>
+        `);
+    }
+
+    // Rename
+    if (caps.rename) {
+        actions.push(`
+            <button class="rename-btn" onclick="event.stopPropagation(); renameDashboardPDF('${filename.replace(/'/g, "\\'")}')">
+                ✏️ Rename
+            </button>
+        `);
+    }
+
+    // Encrypt/Protect (PDF only)
+    if (caps.encrypt) {
+        actions.push(`
+            <button class="protect-btn" onclick="event.stopPropagation(); openProtectModal('${filename.replace(/'/g, "\\'")}')">
+                🔒 Protect
+            </button>
+        `);
+    }
+
+    // Download
+    if (caps.download) {
+        actions.push(`
+            <button class="download-btn" onclick="event.stopPropagation(); downloadDocument('${filename.replace(/'/g, "\\'")}')">
+                ⬇️ Download
+            </button>
+        `);
+    }
+
+    // Delete
+    if (caps.delete) {
+        actions.push(`
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteDashboardPDF('${filename.replace(/'/g, "\\'")}')">
+                🗑 Delete
+            </button>
+        `);
+    }
+
+    return actions.join("");
+}
+
 function displayDashboard(files) {
 
     currentDashboardFiles = Array.isArray(files) ? files : [];
@@ -95,7 +178,7 @@ function displayDashboard(files) {
     body.innerHTML = "";
 
     if (currentDashboardFiles.length === 0) {
-        body.innerHTML = "<tr><td colspan='10' style='text-align: center; color: var(--text-muted); padding: 20px;'>No PDFs found.</td></tr>";
+        body.innerHTML = "<tr><td colspan='9' style='text-align: center; color: var(--text-muted); padding: 20px;'>No documents found.</td></tr>";
         updateSelectionHeader();
         return;
     }
@@ -106,6 +189,8 @@ function displayDashboard(files) {
 
         const tags = Array.isArray(file.tags) ? file.tags : [];
         const tagsText = tags.length ? tags.join(", ") : "—";
+        const icon = file.icon || "📄";
+        const typeLabel = file.typeLabel || "Unknown";
 
         const row = document.createElement("tr");
 
@@ -113,14 +198,17 @@ function displayDashboard(files) {
     <td class="view-column">
         ${selectionMode
             ? `<input type="checkbox" class="file-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" ${selectedFiles.includes(file.name) ? "checked" : ""}>`
-            : `<button class="view-btn" onclick="openPDF('${file.name.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>`}
+            : `<button class="view-btn" onclick="openDocument('${file.name.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>`}
     </td>
 
-    <td>📄</td>
+    <td>
+        <span title="${typeLabel}" style="font-size: 1.2em;">
+            ${icon}
+        </span>
+    </td>
 
     <td class="name-column">
-        <a href="/pdf/${encodeURIComponent(file.name)}"
-           target="_blank"
+        <a href="javascript:void(0)"
            class="file-table-link"
            style="color:var(--text-primary);text-decoration:none;">
             ${file.name}
@@ -130,8 +218,6 @@ function displayDashboard(files) {
     <td class="tags-cell">${tagsText}</td>
 
     <td>${formatFileSize(file.size)}</td>
-
-    <td>${file.pages ?? "--"}</td>
 
     <td>${new Date(file.modified).toLocaleDateString()}</td>
 
@@ -150,42 +236,7 @@ function displayDashboard(files) {
         </button>
 
         <div class="action-menu">
-
-            <button class="preview-btn"
-                onclick="event.stopPropagation(); showPreview('${file.name.replace(/'/g, "\\'")}')">
-                👁 Preview
-            </button>
-
-            <button class="rename-btn"
-                onclick="event.stopPropagation(); renameDashboardPDF('${file.name.replace(/'/g, "\\'")}')">
-                ✏ Rename
-            </button>
-
-            <button class="move-btn"
-                onclick="event.stopPropagation(); moveDashboardPDF('${file.name.replace(/'/g, "\\'")}')">
-                📂 Move
-            </button>
-
-            <button class="copy-btn"
-                onclick="event.stopPropagation(); copyDashboardPDF('${file.name.replace(/'/g, "\\'")}')">
-                📄 Copy
-            </button>
-
-            <button class="protect-btn"
-                onclick="event.stopPropagation(); openProtectModal('${file.name.replace(/'/g, "\\'")}')">
-                🔒 Protect
-            </button>
-
-            <button class="tags-btn"
-                onclick="event.stopPropagation(); openTagManager('${file.name.replace(/'/g, "\\'")}')">
-                🏷 Manage Tags
-            </button>
-
-            <button class="delete-btn"
-                onclick="event.stopPropagation(); deleteDashboardPDF('${file.name.replace(/'/g, "\\'")}')">
-                🗑 Delete
-            </button>
-
+            ${buildActionMenu(file)}
         </div>
 
     </td>
@@ -256,6 +307,44 @@ function updateBulkActionToolbar() {
 }
 
 // Open PDF Workspace in a new tab
+// Format-aware document opener (routes to correct viewer based on file type)
+function openDocument(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    
+    if (ext === 'pdf') {
+        window.open("/pdf/" + encodeURIComponent(filename), "_blank");
+    } else if (ext === 'docx') {
+        openDocxViewer(filename);
+    } else if (ext === 'xlsx') {
+        // XLSX preview via native handler or redirect to download
+        window.open("/documents/download/" + encodeURIComponent(filename), "_blank");
+    } else if (ext === 'pptx') {
+        // PPTX preview - download for now
+        window.open("/documents/download/" + encodeURIComponent(filename), "_blank");
+    } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+        // Image viewer
+        window.open("/documents/download/" + encodeURIComponent(filename), "_blank");
+    } else {
+        // Default: download
+        window.open("/documents/download/" + encodeURIComponent(filename), "_blank");
+    }
+}
+
+// Edit document (DOCX only)
+function editDocument(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (ext === 'docx') {
+        openDocxViewer(filename);
+    } else {
+        alert("This file type does not support editing.");
+    }
+}
+
+// Download document
+function downloadDocument(filename) {
+    window.location.href = "/documents/download/" + encodeURIComponent(filename);
+}
+
 function openPDF(filename) {
     window.open("/pdf/" + encodeURIComponent(filename), "_blank");
 }
@@ -272,7 +361,7 @@ async function showPreview(filename) {
     `;
 
     try {
-        const response = await fetch("/pdf/" + encodeURIComponent(filename) + "/info");
+        const response = await fetch("/documents/" + encodeURIComponent(filename) + "/info");
         const result = await parseJsonResponse(response);
 
         if (!result.success) {
@@ -281,18 +370,28 @@ async function showPreview(filename) {
         }
 
         const info = result.info;
+        const ext = filename.split('.').pop().toLowerCase();
+        const isPdf = ext === 'pdf';
+        const docIcon = info.icon || '📄';
 
         infoPanel.innerHTML = `
             <div class="preview-panel-content">
                 <div class="preview-thumbnail" style="margin-bottom:16px; border-radius:8px; overflow:hidden; border:1px solid var(--border-color, #2a2e39); background:var(--card-bg, #1a1d24);">
-                    <canvas id="previewCanvas" style="width:100%; display:block; min-height:180px;"></canvas>
+                    ${isPdf
+                        ? `<canvas id="previewCanvas" style="width:100%; display:block; min-height:180px;"></canvas>`
+                        : `<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:48px;">${docIcon}</div>`
+                    }
                 </div>
 
                 <h4 style="margin:0 0 12px; color:var(--text-primary); font-size:15px; font-weight:600; word-break:break-all;">
-                    📄 ${info.filename}
+                    ${docIcon} ${info.filename}
                 </h4>
 
                 <div class="info-details">
+                    <div class="info-row">
+                        <span class="info-label">Type</span>
+                        <span class="info-value">${info.typeLabel || info.extension}</span>
+                    </div>
                     <div class="info-row">
                         <span class="info-label">Extension</span>
                         <span class="info-value">${info.extension}</span>
@@ -316,31 +415,33 @@ async function showPreview(filename) {
                 </div>
 
                 <div style="margin-top:16px;">
-                    <button class="action-btn btn-primary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="openPDF('${filename.replace(/'/g, "\\'")}')">
-                        <i class="fas fa-external-link-alt"></i> Open in Workspace
+                    <button class="action-btn btn-primary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="openDocument('${filename.replace(/'/g, "\\\\'")}')">
+                        <i class="fas fa-external-link-alt"></i> Open Document
                     </button>
                 </div>
             </div>
         `;
 
-        // Render first-page thumbnail using pdf.js
-        const canvas = document.getElementById("previewCanvas");
-        if (canvas && window.pdfjsLib) {
-            try {
-                const pdfUrl = "/pdf/" + encodeURIComponent(filename);
-                const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-                const page = await pdf.getPage(1);
-                const viewport = page.getViewport({ scale: 1.0 });
-                const containerWidth = canvas.parentElement.clientWidth || 280;
-                const scale = containerWidth / viewport.width;
-                const scaledViewport = page.getViewport({ scale });
-                canvas.width = scaledViewport.width;
-                canvas.height = scaledViewport.height;
-                const ctx = canvas.getContext("2d");
-                await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-            } catch (pdfErr) {
-                if (canvas.parentElement) {
-                    canvas.parentElement.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:36px;">📄</div>`;
+        // Render first-page thumbnail using pdf.js (PDFs only)
+        if (isPdf) {
+            const canvas = document.getElementById("previewCanvas");
+            if (canvas && window.pdfjsLib) {
+                try {
+                    const pdfUrl = "/pdf/" + encodeURIComponent(filename);
+                    const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 1.0 });
+                    const containerWidth = canvas.parentElement.clientWidth || 280;
+                    const scale = containerWidth / viewport.width;
+                    const scaledViewport = page.getViewport({ scale });
+                    canvas.width = scaledViewport.width;
+                    canvas.height = scaledViewport.height;
+                    const ctx = canvas.getContext("2d");
+                    await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+                } catch (pdfErr) {
+                    if (canvas.parentElement) {
+                        canvas.parentElement.innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted); font-size:36px;">📄</div>`;
+                    }
                 }
             }
         }
@@ -349,26 +450,30 @@ async function showPreview(filename) {
     }
 }
 
+
 async function deleteDashboardPDF(file) {
-
-
-    if (!confirm(`Delete "${file}"?`))
+    if (!confirm(`Delete "${file}"?\nThis action cannot be undone.`))
         return;
 
     try {
-        const response = await fetch("/pdf/" + encodeURIComponent(file), {
-            method: "DELETE"
+        const response = await fetch("/documents/delete", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                filename: file
+            })
         });
 
         const result = await parseJsonResponse(response);
 
         alert(result.message);
 
-        loadPDFs();
+        loadDocuments();
     } catch (err) {
         alert(err.message);
     }
-
 }
 
 async function loadProtectedPDFs() {
@@ -542,16 +647,22 @@ async function loadProtectedPDFs() {
 }
 
 // Load PDFs
-async function loadPDFs() {
-
-    const response = await fetch("/pdfs");
-
+// Load documents (unified endpoint that supports multiple file types)
+async function loadDocuments() {
+    const response = await fetch("/documents/list");
     const result = await parseJsonResponse(response);
 
     if (result.success) {
         displayDashboard(result.files);
+        // Keep the legacy "DOCX Documents" panel in sync with the same
+        // unified file list/state used by the main dashboard.
+        loadDocxFiles();
     }
+}
 
+// Keep old loadPDFs() for backward compatibility, but route to unified endpoint
+async function loadPDFs() {
+    await loadDocuments();
 }
 
 // Search PDFs
@@ -560,7 +671,7 @@ async function searchPDFs() {
     const keyword = document.getElementById("searchInput").value;
 
     if (keyword.trim() === "") {
-        loadPDFs();
+        loadDocuments();
         return;
     }
 
@@ -579,9 +690,10 @@ async function searchPDFs() {
 
 // Show document information
 async function loadDocumentInfo(file) {
+    const filename = typeof file === "object" ? file.name : file;
 
     const response = await fetch(
-        "/pdf/" + encodeURIComponent(file) + "/info"
+        "/documents/" + encodeURIComponent(filename) + "/info"
     );
 
     const result = await parseJsonResponse(response);
@@ -751,21 +863,25 @@ async function submitRenamePDF(event) {
         alert("New name is required.");
         return;
     }
-    if (!newName.toLowerCase().endsWith(".pdf")) {
-        newName += ".pdf";
-    }
 
     try {
-        const response = await fetch(`/pdf/${encodeURIComponent(currentFileToRename)}?newName=${encodeURIComponent(newName)}`, {
-            method: "PATCH"
+        const response = await fetch("/documents/rename", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                oldName: currentFileToRename,
+                newName: newName
+            })
         });
 
         const result = await parseJsonResponse(response);
 
         if (response.ok && result.success) {
             closeRenameModal();
-            alert(result.message || "PDF renamed successfully!");
-            loadPDFs();
+            alert(result.message || "Document renamed successfully!");
+            loadDocuments();
         } else {
             alert(result.message || "Rename failed.");
         }
@@ -807,7 +923,7 @@ async function submitMovePDF(event) {
     }
 
     try {
-        const response = await fetch("/pdf/move", {
+        const response = await fetch("/documents/move", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -822,8 +938,8 @@ async function submitMovePDF(event) {
 
         if (response.ok && result.success) {
             closeMoveModal();
-            alert(result.message || "PDF moved successfully!");
-            loadPDFs();
+            alert(result.message || "Document moved successfully!");
+            loadDocuments();
             selectFolder(currentFolder);
         } else {
             alert(result.message || "Move failed.");
@@ -907,6 +1023,12 @@ function switchSection(section) {
     const activeNavItem = document.getElementById(`nav-${section}`);
     if (activeNavItem) {
         activeNavItem.classList.add("active");
+    }
+
+    // The DOCX panel derives from the unified dashboard state, so make
+    // sure it reflects the latest data whenever it's opened.
+    if (section === "docx") {
+        loadDocxFiles();
     }
 }
 
@@ -1069,81 +1191,195 @@ function exitSelectionMode() {
         toolbar.style.display = "none";
     }
 
-    loadPDFs();
+    loadDocuments();
 }
 
-function bulkMove() {
-    console.log("Bulk Move:", selectedFiles);
+// Bulk Move - Move all selected documents to a folder
+async function bulkMove() {
+    if (!selectedFiles || selectedFiles.length === 0) {
+        alert("Please select at least one document.");
+        return;
+    }
+
+    const folder = prompt(
+        `Move ${selectedFiles.length} documents to folder?\nAvailable: Books, College, Notes, Projects, Archive`
+    );
+
+    if (!folder || !["Books", "College", "Notes", "Projects", "Archive"].includes(folder)) {
+        alert("Invalid or cancelled.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/documents/bulk-move", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                filenames: selectedFiles,
+                folder: folder
+            })
+        });
+
+        const result = await parseJsonResponse(response);
+
+        selectedFiles = [];
+        selectionMode = false;
+        const toolbar = document.getElementById("bulkActionToolbar");
+        if (toolbar) toolbar.style.display = "none";
+
+        await loadDocuments();
+
+        if (result.failed && result.failed > 0) {
+            alert(`${result.moved} moved successfully, ${result.failed} failed.`);
+        } else {
+            alert(`${result.moved} document(s) moved successfully.`);
+        }
+    } catch (error) {
+        console.error("Bulk move failed:", error);
+        alert("Bulk move operation failed.");
+    }
 }
 
+// Bulk Add Tags - Add tags to all selected documents
 function bulkAddTags() {
-    console.log("Bulk Add Tags:", selectedFiles);
+    if (!selectedFiles || selectedFiles.length === 0) {
+        alert("Please select at least one document.");
+        return;
+    }
+
+    const tagsInput = prompt(
+        `Add tags to ${selectedFiles.length} documents.\nEnter tags separated by commas:`
+    );
+
+    if (tagsInput === null) return; // Cancelled
+
+    const newTags = tagsInput.split(",").map(t => t.trim()).filter(t => t.length > 0);
+
+    if (newTags.length === 0) {
+        alert("No tags entered.");
+        return;
+    }
+
+    bulkApplyTags(selectedFiles, newTags);
 }
 
+async function bulkApplyTags(filenames, tagsToAdd) {
+    let successCount = 0;
+    let failedCount = 0;
+    const errors = [];
+
+    for (const filename of filenames) {
+        try {
+            // Get existing tags
+            const getResponse = await fetch(`/documents/${encodeURIComponent(filename)}/tags`);
+            const getResult = await parseJsonResponse(getResponse);
+            let existingTags = getResult.tags || [];
+
+            // Combine with new tags (avoid duplicates)
+            const combinedTags = [...new Set([...existingTags, ...tagsToAdd])];
+
+            // Update tags
+            const updateResponse = await fetch(
+                `/documents/${encodeURIComponent(filename)}/tags`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tags: combinedTags })
+                }
+            );
+
+            const updateResult = await parseJsonResponse(updateResponse);
+
+            if (updateResult.success) {
+                successCount++;
+            } else {
+                failedCount++;
+                errors.push(filename);
+            }
+        } catch (error) {
+            failedCount++;
+            errors.push(filename);
+        }
+    }
+
+    selectedFiles = [];
+    selectionMode = false;
+    const toolbar = document.getElementById("bulkActionToolbar");
+    if (toolbar) toolbar.style.display = "none";
+
+    await loadDocuments();
+
+    if (failedCount > 0) {
+        alert(`${successCount} updated, ${failedCount} failed.\nFailed: ${errors.join(", ")}`);
+    } else {
+        alert(`Tags added to ${successCount} document(s).`);
+    }
+}
+
+// Bulk Download - Download selected documents (as ZIP if multiple)
 function bulkDownload() {
-    console.log("Bulk Download:", selectedFiles);
+    if (!selectedFiles || selectedFiles.length === 0) {
+        alert("Please select at least one document.");
+        return;
+    }
+
+    if (selectedFiles.length === 1) {
+        // Single file: direct download
+        downloadDocument(selectedFiles[0]);
+    } else {
+        // Multiple files: download one by one (user may want ZIP in future)
+        alert(
+            `Downloading ${selectedFiles.length} files...\n` +
+            "Files will be downloaded individually. For bulk ZIP download, please contact support."
+        );
+        selectedFiles.forEach(filename => {
+            setTimeout(() => {
+                downloadDocument(filename);
+            }, 200);
+        });
+    }
 }
 
+// Bulk Delete - Delete all selected documents
 async function bulkDelete() {
     if (!selectedFiles || selectedFiles.length === 0) {
-        alert("Please select at least one PDF.");
+        alert("Please select at least one document.");
         return;
     }
 
     const filesToDelete = [...selectedFiles];
 
     const confirmed = confirm(
-        `Delete ${filesToDelete.length} selected PDF${filesToDelete.length > 1 ? "s" : ""}?`
+        `Delete ${filesToDelete.length} selected document${filesToDelete.length > 1 ? "s" : ""}?\n` +
+        "This action cannot be undone."
     );
 
     if (!confirmed) return;
 
-    let deletedCount = 0;
-    let failedCount = 0;
+    try {
+        const response = await fetch("/documents/bulk-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filenames: filesToDelete })
+        });
 
-    for (const filename of filesToDelete) {
-        try {
-            const response = await fetch(
-                `/pdf/${encodeURIComponent(filename)}`,
-                { method: "DELETE" }
-            );
+        const result = await parseJsonResponse(response);
 
-            const result = await parseJsonResponse(response);
+        selectedFiles = [];
+        selectionMode = false;
+        const toolbar = document.getElementById("bulkActionToolbar");
+        if (toolbar) toolbar.style.display = "none";
 
-            if (response.ok && result.success) {
-                deletedCount++;
-            } else {
-                failedCount++;
-                console.error(`Failed to delete ${filename}:`, result.message);
-            }
+        await loadDocuments();
 
-        } catch (error) {
-            failedCount++;
-            console.error(`Error deleting ${filename}:`, error);
+        if (result.failed && result.failed > 0) {
+            alert(`${result.deleted} deleted, ${result.failed} failed.`);
+        } else {
+            alert(`${result.deleted} document(s) deleted successfully.`);
         }
-    }
-
-    // Exit selection mode
-    selectedFiles = [];
-    selectionMode = false;
-
-    const toolbar = document.getElementById("bulkActionToolbar");
-    if (toolbar) {
-        toolbar.style.display = "none";
-    }
-
-    // Refresh dashboard
-    await loadPDFs();
-
-    // Show result
-    if (failedCount === 0) {
-        alert(
-            `${deletedCount} PDF${deletedCount > 1 ? "s" : ""} deleted successfully.`
-        );
-    } else {
-        alert(
-            `${deletedCount} deleted successfully, ${failedCount} failed.`
-        );
+    } catch (error) {
+        console.error("Bulk delete failed:", error);
+        alert("Bulk delete operation failed.");
     }
 }
 
@@ -1167,7 +1403,7 @@ async function submitEditTags(event) {
     event.preventDefault();
 
     if (!currentFileToEditTags) {
-        alert("No PDF selected.");
+        alert("No document selected.");
         return;
     }
 
@@ -1185,7 +1421,7 @@ async function submitEditTags(event) {
 
     try {
         const response = await fetch(
-            `/pdf/${encodeURIComponent(currentFileToEditTags)}/tags`,
+            `/documents/${encodeURIComponent(currentFileToEditTags)}/tags`,
             {
                 method: "POST",
                 headers: {
@@ -1264,7 +1500,7 @@ async function loadCurrentTags(filename) {
     container.innerHTML = "Loading...";
 
     try {
-        const response = await fetch(`/pdf/${encodeURIComponent(filename)}/tags`);
+        const response = await fetch(`/documents/${encodeURIComponent(filename)}/tags`);
         const result = await parseJsonResponse(response);
 
         if (result.success && Array.isArray(result.tags)) {
@@ -1299,13 +1535,24 @@ async function addTag() {
     }
 
     try {
-        const response = await fetch(`/pdf/${encodeURIComponent(currentFileForTags)}/tags`, {
+        // Fetch existing tags first
+        const getResponse = await fetch(`/documents/${encodeURIComponent(currentFileForTags)}/tags`);
+        const getResult = await parseJsonResponse(getResponse);
+        const existingTags = (getResult.success && Array.isArray(getResult.tags)) ? getResult.tags : [];
+
+        // Combine with new tag (avoid duplicates, case-insensitive)
+        const existingLower = new Set(existingTags.map(t => t.toLowerCase()));
+        const combinedTags = existingLower.has(tag.toLowerCase())
+            ? existingTags
+            : [...existingTags, tag];
+
+        const response = await fetch(`/documents/${encodeURIComponent(currentFileForTags)}/tags`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                tags: [tag]
+                tags: combinedTags
             })
         });
 
@@ -1328,7 +1575,7 @@ async function removeTag(encodedFilename, encodedTag) {
     const tag = decodeURIComponent(encodedTag);
 
     try {
-        const response = await fetch(`/pdf/${encodeURIComponent(filename)}/tags`, {
+        const response = await fetch(`/documents/${encodeURIComponent(filename)}/tags`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json"
@@ -1362,7 +1609,141 @@ document.addEventListener("click", (e) => {
     }
 });
 
+// ================================================================
+// DOCX integration (additive — talks only to /docx/* routes and does
+// not modify any existing PDF upload/list/preview logic above).
+// ================================================================
+
+function setDocxStatusMessage(message, isError = true) {
+    const status = document.getElementById("docxStatusMessage");
+    if (!status) return;
+    status.textContent = message || "";
+    status.style.display = message ? "block" : "none";
+    status.style.color = isError ? "#ff4d4f" : "#22c55e";
+}
+
+async function uploadDocxFile() {
+    const input = document.getElementById("docxFileInput");
+    const file = input?.files?.[0];
+
+    if (!file) {
+        setDocxStatusMessage("Please select a .docx file.");
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".docx")) {
+        setDocxStatusMessage("Only .docx files are supported.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("/docx/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await parseJsonResponse(response);
+
+        if (result.success) {
+            input.value = "";
+            setDocxStatusMessage(`Uploaded: ${result.filename}`, false);
+            // Refresh the unified dashboard state; the DOCX panel derives
+            // from currentDashboardFiles, so this re-renders both views.
+            await loadDocuments();
+        } else {
+            setDocxStatusMessage(result.message || "DOCX upload failed.");
+        }
+    } catch (err) {
+        setDocxStatusMessage(err.message);
+    }
+}
+
+// Renders the "DOCX Documents" panel from the unified dashboard state
+// (currentDashboardFiles) instead of a separate /docx/list fetch, so this
+// panel and the main Recent Documents table never fall out of sync.
+// Kept as loadDocxFiles() for backward compatibility with existing callers.
+function loadDocxFiles() {
+    const listEl = document.getElementById("docxFileList");
+    const countEl = document.getElementById("docx-count");
+
+    if (!listEl) return;
+
+    const docxFiles = currentDashboardFiles.filter(file => file.type === "docx");
+
+    if (countEl) {
+        countEl.textContent = `${docxFiles.length} files`;
+    }
+
+    listEl.innerHTML = "";
+
+    if (docxFiles.length === 0) {
+        listEl.innerHTML = "<div class='no-files-state'><p>No DOCX files uploaded yet.</p></div>";
+        return;
+    }
+
+    docxFiles.forEach(file => {
+        const safeName = file.name.replace(/'/g, "\\'");
+        const caps = file.capabilities || {};
+
+        const div = document.createElement("div");
+        div.className = "file-item";
+        div.innerHTML = `
+            <span class="file-info">
+                <span class="file-icon">📝</span>
+                <span class="file-name">${file.name}</span>
+            </span>
+            <span class="file-actions">
+                ${caps.preview || caps.edit
+                    ? `<button class="action-btn" onclick="openDocxViewer('${safeName}')">
+                        <i class="fas fa-eye"></i> Preview / Edit
+                    </button>`
+                    : ""}
+                ${caps.download
+                    ? `<button class="action-btn" onclick="downloadDocument('${safeName}')">
+                        <i class="fas fa-download"></i> Download
+                    </button>`
+                    : ""}
+                ${caps.delete
+                    ? `<button class="action-btn" onclick="deleteDocxFile('${safeName}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>`
+                    : ""}
+            </span>
+        `;
+        listEl.appendChild(div);
+    });
+}
+
+function openDocxViewer(filename) {
+    window.open("viewer.html?file=" + encodeURIComponent(filename), "_blank");
+}
+
+// Deletes through the same unified /documents/delete route used by the
+// main dashboard, then refreshes the shared state so both views update.
+async function deleteDocxFile(filename) {
+    if (!confirm(`Delete "${filename}"?`)) return;
+
+    try {
+        const response = await fetch("/documents/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename })
+        });
+
+        const result = await parseJsonResponse(response);
+        setDocxStatusMessage(result.message, !result.success);
+        await loadDocuments();
+    } catch (err) {
+        setDocxStatusMessage(err.message);
+    }
+}
+
 window.onload = () => {
+    // loadPDFs() -> loadDocuments() populates currentDashboardFiles and
+    // also refreshes the DOCX panel (loadDocxFiles) from that same state.
     loadPDFs();
     loadProtectedPDFs();
     selectFolder("Books");

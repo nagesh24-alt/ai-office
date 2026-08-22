@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOCX Viewer — NeuroCore Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+    <div class="viewer-app">
+        <header class="viewer-header">
+            <div class="viewer-title-group">
+                <span class="viewer-file-icon">📝</span>
+                <div>
+                    <h1 id="docTitle">Loading…</h1>
+                    <p id="statusMsg" class="viewer-status">Loading preview…</p>
+                </div>
+            </div>
+
+            <div class="viewer-actions">
+                <button id="editToggleBtn" class="viewer-btn" onclick="enterEditMode()">
+                    <i class="fas fa-pen"></i> Edit Text
+                </button>
+                <button class="viewer-btn viewer-btn-ghost" onclick="downloadOriginal()">
+                    <i class="fas fa-download"></i> Download .docx
+                </button>
+            </div>
+        </header>
+
+        <main class="viewer-main">
+            <!-- Formatted, read-only preview (DOCX Preview UI + formatting preservation) -->
+            <section id="previewPane" class="viewer-pane">
+                <div id="previewContent" class="docx-preview-frame">
+                    <div class="viewer-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Rendering document…
+                    </div>
+                </div>
+            </section>
+
+            <!-- Paragraph-level text editor (DOCX editing integration + round-trip save) -->
+            <section id="editPane" class="viewer-pane" style="display:none;">
+                <div class="edit-pane-notice">
+                    <i class="fas fa-info-circle"></i>
+                    Editing works at the paragraph-text level. Formatting on the first
+                    line of each paragraph is kept; images, tables, and layout are left
+                    untouched. A backup of the original file is kept automatically.
+                </div>
+                <div id="editorParagraphs" class="editor-paragraphs"></div>
+                <div class="editor-footer">
+                    <button class="viewer-btn viewer-btn-ghost" onclick="exitEditMode()">Cancel</button>
+                    <button class="viewer-btn viewer-btn-primary" onclick="saveChanges()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="viewer.js"></script>
+</body>
+</html>
