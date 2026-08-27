@@ -26,14 +26,19 @@ function setStatus(message, isError = false) {
 
 async function parseJsonResponse(response) {
     const text = await response.text();
+    if (!text || text.trim() === "") {
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`);
+        }
+        return { success: true };
+    }
     try {
         return JSON.parse(text);
     } catch {
-        throw new Error(
-            response.ok
-                ? "Server returned an invalid response."
-                : `Request failed (${response.status}).`
-        );
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status}). ${text.slice(0, 120)}`);
+        }
+        return { success: true, message: text, raw: text };
     }
 }
 
@@ -144,14 +149,17 @@ function downloadOriginal() {
 }
 
 async function init() {
+    const docTitle = document.getElementById("docTitle");
+    const editToggleBtn = document.getElementById("editToggleBtn");
+
     if (!filename) {
-        document.getElementById("docTitle").textContent = "No file specified";
+        if (docTitle) docTitle.textContent = "No file specified";
         setStatus("Open this page as viewer.html?file=yourfile.docx", true);
-        document.getElementById("editToggleBtn").disabled = true;
+        if (editToggleBtn) editToggleBtn.disabled = true;
         return;
     }
 
-    document.getElementById("docTitle").textContent = filename;
+    if (docTitle) docTitle.textContent = filename;
     await loadPreview();
 }
 

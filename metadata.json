@@ -1,0 +1,8 @@
+{
+  "name": "NeuroCore Office",
+  "description": "Document management and office suite with PDF protection, organization, categorization, and DOCX document viewing and editing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

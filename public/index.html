@@ -4,339 +4,758 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroCore Office - AI Dashboard</title>
+    <title>NeuroCore Office - Smarter Documents. Greater Possibilities.</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 
-<body class="dark-theme">
-    <div class="app-container">
+<body class="grayscale-dark-theme">
+    <div class="app-layout">
 
-        <!-- Sidebar Navigation -->
-        <aside class="app-sidebar">
-            <div class="sidebar-brand">
-                <span class="brand-dot"></span>
-                <h2>NeuroCore Office</h2>
-            </div>
-
-            <nav class="sidebar-nav">
-                <button class="nav-item active" id="nav-dashboard" onclick="switchSection('dashboard')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    <span>Dashboard</span>
-                </button>
-                <button class="nav-item" id="nav-folders" onclick="switchSection('folders')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span>Folders</span>
-                </button>
-                <button class="nav-item" id="nav-protected" onclick="switchSection('protected')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <span>Protected PDFs</span>
-                </button>
-                <button class="nav-item" id="nav-docx" onclick="switchSection('docx')">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="9" y1="15" x2="15" y2="15"></line>
-                        <line x1="9" y1="11" x2="13" y2="11"></line>
-                    </svg>
-                    <span>DOCX Documents</span>
-                </button>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="version-badge">v1.2.0 (Stable)</div>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="app-main">
-            <!-- Topbar / Search & Upload -->
-            <header class="app-header">
-                <div class="global-search">
-                    <svg class="global-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input id="globalSearch" type="text" placeholder="Search documents, folders, tags, metadata..." oninput="filterDocuments()">
-                    <span class="shortcut" aria-label="Press Ctrl+K to focus search">
-                        <span>Ctrl</span><span>K</span>
-                    </span>
+        <!-- Top Navigation Bar -->
+        <header class="top-nav-bar">
+            <div class="nav-brand-container">
+                <div class="brand-logo-icon">
+                    <span>N</span>
                 </div>
+                <div class="brand-text-block">
+                    <h1 class="brand-title">NeuroCore Office</h1>
+                    <span class="brand-tagline">Smarter Documents. Greater Possibilities.</span>
+                </div>
+            </div>
 
-                <div class="header-actions">
-                    <div class="upload-widget">
-                        <label for="fileInput" class="upload-btn">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            <span id="fileLabel">Choose File</span>
-                        </label>
-                        <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg" onchange="updateFileLabel()">
-                        <button class="action-btn btn-primary" onclick="uploadFile()">Upload</button>
+            <div class="nav-center-search">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="globalSearch" placeholder="Search documents, tools, or ask NeuroCore AI..." oninput="handleGlobalSearch(this.value)">
+                    <span class="search-shortcut">Ctrl K</span>
+                </div>
+            </div>
+
+            <div class="nav-right-controls">
+                <button class="nav-icon-btn" id="themeToggleBtn" title="Toggle Theme" onclick="toggleGrayscaleTheme()">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <div class="notification-wrapper">
+                    <button class="nav-icon-btn" id="notificationBtn" title="Notifications" onclick="toggleNotifications(event)">
+                        <i class="far fa-bell"></i>
+                        <span class="notification-badge"></span>
+                    </button>
+                    <div id="notificationsPopover" class="notifications-popover" style="display: none;">
+                        <div class="popover-header">
+                            <h4>Notifications</h4>
+                            <button onclick="clearNotifications()">Clear all</button>
+                        </div>
+                        <div class="popover-body">
+                            <div class="notif-item">
+                                <div class="notif-icon"><i class="fas fa-shield-alt"></i></div>
+                                <div class="notif-content">
+                                    <p>Document protection engine is ready</p>
+                                    <span class="notif-time">Just now</span>
+                                </div>
+                            </div>
+                            <div class="notif-item">
+                                <div class="notif-icon"><i class="fas fa-check-circle"></i></div>
+                                <div class="notif-content">
+                                    <p>Workspace synchronized successfully</p>
+                                    <span class="notif-time">10 mins ago</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </header>
 
-            <!-- Dashboard View -->
-            <section id="dashboard-section" class="content-section active">
-                <div class="section-header">
-                    <h1>Document Dashboard</h1>
-                    <p>Manage and protect your recent uploads</p>
+                <div class="user-profile-menu-wrapper">
+                    <div class="user-profile-chip" onclick="toggleUserDropdown(event)">
+                        <div class="user-avatar-circle">N</div>
+                        <div class="user-meta-text">
+                            <span class="user-name">Neuro User</span>
+                            <span class="user-plan">Premium Plan</span>
+                        </div>
+                        <i class="fas fa-chevron-down user-dropdown-arrow"></i>
+                    </div>
+                    <div id="userDropdownMenu" class="user-dropdown-menu" style="display: none;">
+                        <div class="user-dropdown-header">
+                            <strong>Neuro User</strong>
+                            <span>user@neurocore.ai</span>
+                        </div>
+                        <div class="user-dropdown-divider"></div>
+                        <button onclick="openComingSoonModal('Account Settings')"><i class="fas fa-user-cog"></i> Account Settings</button>
+                        <button onclick="openComingSoonModal('Subscription & Billing')"><i class="fas fa-credit-card"></i> Manage Subscription</button>
+                        <button onclick="openComingSoonModal('Preferences')"><i class="fas fa-sliders-h"></i> Preferences</button>
+                        <div class="user-dropdown-divider"></div>
+                        <button onclick="showToast('Signed out of session', 'info')"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-body-container">
+            <!-- Left Sidebar -->
+            <aside class="app-sidebar">
+                <div class="sidebar-scrollable">
+                    <div class="sidebar-section">
+                        <nav class="sidebar-nav">
+                            <button class="nav-item active" id="nav-dashboard" onclick="switchSection('dashboard')">
+                                <i class="fas fa-home-alt"></i>
+                                <span>Dashboard</span>
+                            </button>
+                            <button class="nav-item" id="nav-all-documents" onclick="filterByNavType('all')">
+                                <i class="far fa-file-alt"></i>
+                                <span>All Documents</span>
+                            </button>
+                            <button class="nav-item" id="nav-recent" onclick="filterByNavType('recent')">
+                                <i class="far fa-clock"></i>
+                                <span>Recent</span>
+                            </button>
+                            <button class="nav-item" id="nav-starred" onclick="filterByNavType('starred')">
+                                <i class="far fa-star"></i>
+                                <span>Starred</span>
+                            </button>
+                            <button class="nav-item" id="nav-shared" onclick="openComingSoonModal('Shared with me')">
+                                <i class="fas fa-user-friends"></i>
+                                <span>Shared with me</span>
+                            </button>
+                            <button class="nav-item" id="nav-trash" onclick="openComingSoonModal('Trash & Recovery')">
+                                <i class="far fa-trash-alt"></i>
+                                <span>Trash</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-group-title">TOOLS</div>
+                        <nav class="sidebar-nav">
+                            <button class="nav-item" id="nav-pdf-tools" onclick="openPdfToolsHub()">
+                                <i class="far fa-file-pdf"></i>
+                                <span>PDF Tools</span>
+                            </button>
+                            <button class="nav-item" id="nav-document-editor" onclick="openDocxEditorNav()">
+                                <i class="far fa-edit"></i>
+                                <span>Document Editor</span>
+                            </button>
+                            <button class="nav-item" id="nav-spreadsheet" onclick="openComingSoonModal('Spreadsheet Suite')">
+                                <i class="fas fa-th"></i>
+                                <span>Spreadsheet</span>
+                            </button>
+                            <button class="nav-item" id="nav-presentation" onclick="openComingSoonModal('Presentation Builder')">
+                                <i class="fas fa-desktop"></i>
+                                <span>Presentation</span>
+                            </button>
+                            <button class="nav-item" id="nav-resume-builder" onclick="openResumeBuilderModal()">
+                                <i class="far fa-id-badge"></i>
+                                <span>Resume Builder</span>
+                            </button>
+                            <button class="nav-item" id="nav-ats-checker" onclick="openAtsCheckerModal()">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>ATS Checker</span>
+                            </button>
+                            <button class="nav-item" id="nav-cloud-storage" onclick="openComingSoonModal('Cloud Storage Sync')">
+                                <i class="fas fa-cloud"></i>
+                                <span>Cloud Storage</span>
+                            </button>
+                            <button class="nav-item" id="nav-ai-assistant" onclick="openAiAssistantModal()">
+                                <i class="fas fa-sparkles"></i>
+                                <span>AI Assistant</span>
+                            </button>
+                        </nav>
+                    </div>
                 </div>
 
-                <div class="dashboard-grid">
-                    <!-- Main Left Column -->
-                    <div class="grid-col-main">
-                        <div class="dashboard-card recent-card recent-pdfs">
+                <!-- Storage Info Widget in Sidebar -->
+                <div class="sidebar-storage-widget">
+                    <div class="storage-meta-row">
+                        <span class="storage-label">STORAGE</span>
+                    </div>
+                    <div class="storage-usage-row">
+                        <i class="fas fa-cloud storage-icon"></i>
+                        <span class="storage-text">24.36 GB / 100 GB used</span>
+                    </div>
+                    <div class="storage-progress-track">
+                        <div class="storage-progress-fill" style="width: 24.36%;"></div>
+                    </div>
+                    <button class="btn-manage-storage" onclick="openComingSoonModal('Cloud Storage Manager')">Manage Storage</button>
 
-                            <div class="card-header">
+                    <div class="sidebar-brand-version">
+                        <i class="fas fa-sparkle"></i>
+                        <span>NeuroCore Office v1.0.0</span>
+                    </div>
+                </div>
+            </aside>
 
-                                <h3>📁 Recent Documents</h3>
+            <!-- Main Content Area -->
+            <main class="app-main-content">
+                
+                <!-- Dashboard Section View -->
+                <section id="dashboard-section" class="content-section active">
+                    
+                    <!-- Dashboard Greeting Header -->
+                    <div class="dashboard-greeting-bar">
+                        <div class="greeting-text-block">
+                            <h2 class="greeting-heading" id="greetingHeading">Good morning, Neuro User <span class="wave-emoji">👋</span></h2>
+                            <p class="greeting-subtitle">Welcome back! Your workspace is ready.</p>
+                        </div>
+                        <div class="greeting-actions-block">
+                            <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.pptx,.xml,.csv,.png,.jpg,.jpeg" style="display: none;" onchange="handleDirectUpload(this)">
+                            <button class="btn-primary-action btn-upload" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-arrow-up-from-bracket"></i>
+                                <span>Upload</span>
+                            </button>
 
-                                <div class="dashboard-header-actions">
+                            <div class="new-dropdown-wrapper">
+                                <button class="btn-primary-action btn-new" onclick="toggleNewMenu(event)">
+                                    <i class="fas fa-plus"></i>
+                                    <span>New</span>
+                                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                </button>
+                                <div id="newDropdownMenu" class="new-dropdown-menu" style="display: none;">
+                                    <button onclick="createNewDocxDocument()"><i class="fas fa-file-word icon-blue"></i> New Word (.docx)</button>
+                                    <button onclick="openResumeBuilderModal()"><i class="fas fa-id-card icon-purple"></i> New Resume Draft</button>
+                                    <button onclick="openProtectModalDirect()"><i class="fas fa-lock icon-red"></i> Protect PDF</button>
+                                    <button onclick="openComingSoonModal('New Spreadsheet')"><i class="fas fa-file-excel icon-green"></i> New Sheet (.xlsx)</button>
+                                    <button onclick="openComingSoonModal('New Slide Deck')"><i class="fas fa-file-powerpoint icon-orange"></i> New Slide (.pptx)</button>
+                                    <div class="dropdown-menu-divider"></div>
+                                    <button onclick="openMoveModalDirect()"><i class="fas fa-folder-plus"></i> New Folder</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <div class="select-dropdown">
+                    <!-- Category Summary Cards (Top Row) -->
+                    <div class="category-cards-grid">
+                        <div class="cat-stat-card" onclick="filterByNavType('all')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-all-icon">
+                                    <i class="far fa-folder-open"></i>
+                                </div>
+                                <span class="cat-title">All Documents</span>
+                            </div>
+                            <div class="cat-stat-number" id="stat-all-count">1,248</div>
+                            <div class="cat-stat-label">Files in total</div>
+                        </div>
 
-                                        <button class="select-btn" onclick="toggleSelectMenu(event)">
+                        <div class="cat-stat-card" onclick="filterByNavType('pdf')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-pdf-icon">
+                                    <span class="cat-badge-txt">PDF</span>
+                                </div>
+                                <span class="cat-title">PDF</span>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('pdf')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                            <div class="cat-stat-number" id="stat-pdf-count">328</div>
+                            <div class="cat-stat-label">PDF Documents</div>
+                        </div>
 
-                                            Select ▼
+                        <div class="cat-stat-card" onclick="filterByNavType('docx')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-docx-icon">
+                                    <span class="cat-badge-txt">W</span>
+                                </div>
+                                <span class="cat-title">DOCX</span>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('docx')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                            <div class="cat-stat-number" id="stat-docx-count">452</div>
+                            <div class="cat-stat-label">Word Documents</div>
+                        </div>
 
-                                        </button>
+                        <div class="cat-stat-card" onclick="filterByNavType('xlsx')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-xlsx-icon">
+                                    <span class="cat-badge-txt">X</span>
+                                </div>
+                                <span class="cat-title">XLSX</span>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('xlsx')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                            <div class="cat-stat-number" id="stat-xlsx-count">183</div>
+                            <div class="cat-stat-label">Excel Sheets</div>
+                        </div>
 
-                                        <div id="selectMenu" class="select-menu">
+                        <div class="cat-stat-card" onclick="filterByNavType('pptx')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-pptx-icon">
+                                    <span class="cat-badge-txt">P</span>
+                                </div>
+                                <span class="cat-title">PPTX</span>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('pptx')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                            <div class="cat-stat-number" id="stat-pptx-count">136</div>
+                            <div class="cat-stat-label">Presentations</div>
+                        </div>
 
-                                            <button onclick="enterSelectionMode()">
-                                                📑 Select Files
-                                            </button>
+                        <div class="cat-stat-card" onclick="filterByNavType('others')">
+                            <div class="cat-card-header">
+                                <div class="cat-icon-box cat-other-icon">
+                                    <i class="fas fa-file-lines"></i>
+                                </div>
+                                <span class="cat-title">Others</span>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('others')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                            <div class="cat-stat-number" id="stat-other-count">149</div>
+                            <div class="cat-stat-label">Other Files</div>
+                        </div>
+                    </div>
 
-                                            <button onclick="selectAllFiles()">
-                                                ☑ Select All
-                                            </button>
-
-                                            <button onclick="selectByTag()">
-                                                🏷 Select by Tag
-                                            </button>
-
-                                            <button onclick="selectProtected()">
-                                                🔒 Select Protected
-                                            </button>
-
-                                            <button onclick="closeSelectMenu()">
-                                                ✖ Cancel
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
+                    <!-- Middle Row: Recent Documents + Quick Access -->
+                    <div class="dashboard-middle-grid">
+                        
+                        <!-- Left Column: Recent Documents Table -->
+                        <div class="recent-documents-card">
+                            <div class="recent-card-header">
+                                <h3>Recent Documents</h3>
+                                <div class="recent-header-right">
                                     <div id="bulkActionToolbar" class="bulk-action-toolbar" style="display:none;">
                                         <span id="selectedCount" class="selected-count">0 Selected</span>
-
                                         <button type="button" onclick="bulkMove()">📂 Move</button>
                                         <button type="button" onclick="bulkAddTags()">🏷 Tags</button>
                                         <button type="button" onclick="bulkDownload()">⬇ Download</button>
                                         <button type="button" onclick="bulkDelete()">🗑 Delete</button>
-
-                                        <button type="button"
-                                                class="bulk-cancel-btn"
-                                                onclick="exitSelectionMode()">✕</button>
+                                        <button type="button" class="bulk-cancel-btn" onclick="exitSelectionMode()">✕</button>
                                     </div>
-
-                                    <span class="badge" id="recent-count">
-
-                                        0 files
-
-                                    </span>
-
-                                </div>
-
-                            </div>
-                            <div class="card-body">
-                                <div class="dashboard-table-container">
-
-                                    <table id="pdfTable">
-
-                                        <thead>
-
-                                            <tr>
-
-                                                <th class="preview-column"> View </th>
-
-                                                <th>Type</th>
-
-                                                <th>Name</th>
-
-                                                <th>Tags</th>
-
-                                                <th>Size</th>
-
-                                                <th>Modified</th>
-                                                <th>Owner</th>
-
-                                                <th>Status</th>
-
-                                                <th>Actions</th>
-
-                                            </tr>
-
-                                        </thead>
-
-                                        <tbody id="pdfTableBody">
-
-                                            <!-- Dynamic rows -->
-
-                                        </tbody>
-
-                                    </table>
-
+                                    <button class="btn-view-all" onclick="filterByNavType('all')">View all</button>
                                 </div>
                             </div>
+                            <div class="table-responsive-wrapper">
+                                <table id="pdfTable" class="modern-doc-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="th-select">
+                                                <input type="checkbox" id="headerSelectAll" title="Select all" onchange="toggleSelectAllFromHeader(this)">
+                                            </th>
+                                            <th class="th-star"></th>
+                                            <th class="th-name">Name</th>
+                                            <th class="th-type">Type</th>
+                                            <th class="th-modified">Modified</th>
+                                            <th class="th-size">Size</th>
+                                            <th class="th-actions"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pdfTableBody">
+                                        <!-- Dynamic Rows Rendered by script.js -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Quick Access (8 Tiles) -->
+                        <div class="quick-access-card">
+                            <div class="quick-access-header">
+                                <h3>Quick Access</h3>
+                            </div>
+                            <div class="quick-access-grid">
+                                <button class="qa-tile" onclick="openPdfToolsHub()">
+                                    <div class="qa-icon"><i class="far fa-file-pdf"></i></div>
+                                    <span class="qa-label">PDF Tools</span>
+                                </button>
+                                <button class="qa-tile" onclick="openDocxEditorNav()">
+                                    <div class="qa-icon"><i class="far fa-edit"></i></div>
+                                    <span class="qa-label">Document Editor</span>
+                                </button>
+                                <button class="qa-tile" onclick="openComingSoonModal('Spreadsheet Studio')">
+                                    <div class="qa-icon"><i class="fas fa-th"></i></div>
+                                    <span class="qa-label">Spreadsheet</span>
+                                </button>
+                                <button class="qa-tile" onclick="openComingSoonModal('Presentation Maker')">
+                                    <div class="qa-icon"><i class="fas fa-desktop"></i></div>
+                                    <span class="qa-label">Presentation</span>
+                                </button>
+                                <button class="qa-tile" onclick="openResumeBuilderModal()">
+                                    <div class="qa-icon"><i class="far fa-id-badge"></i></div>
+                                    <span class="qa-label">Resume Builder</span>
+                                </button>
+                                <button class="qa-tile" onclick="openAtsCheckerModal()">
+                                    <div class="qa-icon"><i class="fas fa-shield-alt"></i></div>
+                                    <span class="qa-label">ATS Checker</span>
+                                </button>
+                                <button class="qa-tile" onclick="openComingSoonModal('Cloud Storage Sync')">
+                                    <div class="qa-icon"><i class="fas fa-cloud"></i></div>
+                                    <span class="qa-label">Cloud Storage</span>
+                                </button>
+                                <button class="qa-tile" onclick="openAiAssistantModal()">
+                                    <div class="qa-icon"><i class="fas fa-sparkles"></i></div>
+                                    <span class="qa-label">AI Assistant</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Right Column: Meta Info -->
-                    <aside class="grid-col-sidebar">
-                        <div class="dashboard-card info-card">
-                            <div class="card-header">
-                                <h3>ℹ️ Document Information</h3>
+                    <!-- Bottom 3-Column Grid -->
+                    <div class="dashboard-bottom-grid">
+                        
+                        <!-- Column 1: Resume Builder & Analyzer -->
+                        <div class="tool-widget-card resume-widget-card">
+                            <div class="widget-card-header">
+                                <h3>Resume Builder & Analyzer</h3>
                             </div>
-                            <div class="card-body" id="documentInfo">
-                                <div class="empty-info-state">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                    </svg>
-                                    <p>Select a document to view detailed metadata.</p>
+                            <div class="resume-widget-body">
+                                <div class="resume-score-col">
+                                    <div class="circle-score-gauge">
+                                        <div class="circle-score-inner">
+                                            <span class="score-number">87</span>
+                                        </div>
+                                    </div>
+                                    <div class="score-desc-block">
+                                        <strong class="score-status-text">Your resume score is Good</strong>
+                                        <p class="score-subtext">Improve it to match job requirements.</p>
+                                    </div>
+                                </div>
+                                <div class="resume-mini-thumb">
+                                    <div class="mini-resume-doc">
+                                        <div class="doc-header-line"></div>
+                                        <div class="doc-line l1"></div>
+                                        <div class="doc-line l2"></div>
+                                        <div class="doc-line l3"></div>
+                                        <div class="doc-line l4"></div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </aside>
-                </div>
-            </section>
-
-            <!-- Folders View -->
-            <section id="folders-section" class="content-section">
-                <div class="section-header">
-                    <h1>Document Categories</h1>
-                    <p>Organize files into classified workspace folders</p>
-                </div>
-
-                <div class="folders-layout">
-                    <!-- Folders sidebar/tabs -->
-                    <div class="folder-tabs">
-                        <button class="folder-tab-btn active" data-folder="Books" onclick="selectFolder('Books')">
-                            <span class="folder-tab-icon">📚</span>
-                            <span class="folder-tab-name">Books</span>
-                        </button>
-                        <button class="folder-tab-btn" data-folder="College" onclick="selectFolder('College')">
-                            <span class="folder-tab-icon">🎓</span>
-                            <span class="folder-tab-name">College</span>
-                        </button>
-                        <button class="folder-tab-btn" data-folder="Notes" onclick="selectFolder('Notes')">
-                            <span class="folder-tab-icon">📝</span>
-                            <span class="folder-tab-name">Notes</span>
-                        </button>
-                        <button class="folder-tab-btn" data-folder="Projects" onclick="selectFolder('Projects')">
-                            <span class="folder-tab-icon">💻</span>
-                            <span class="folder-tab-name">Projects</span>
-                        </button>
-                        <button class="folder-tab-btn" data-folder="Archive" onclick="selectFolder('Archive')">
-                            <span class="folder-tab-icon">🗄️</span>
-                            <span class="folder-tab-name">Archive</span>
-                        </button>
-                    </div>
-
-                    <!-- Folders contents -->
-                    <div class="folder-content-pane">
-                        <div class="dashboard-card folder-card">
-                            <div class="card-header">
-                                <h3 id="current-folder-title">Folder: Books</h3>
-                                <span class="badge" id="folder-count">0 files</span>
+                            <div class="resume-widget-footer">
+                                <button class="btn-widget-action" onclick="openResumeBuilderModal()">Build New Resume</button>
+                                <button class="btn-widget-action" onclick="openAtsCheckerModal()">Analyze Resume</button>
                             </div>
-                            <div class="card-body">
-                                <div id="folderFileList" class="file-list">
-                                    <!-- Dynamic content -->
+                        </div>
+
+                        <!-- Column 2: ATS Checker (Resume) -->
+                        <div class="tool-widget-card ats-widget-card">
+                            <div class="widget-card-header">
+                                <h3>ATS Checker (Resume)</h3>
+                            </div>
+                            <div class="ats-widget-body">
+                                <div class="ats-gauge-row">
+                                    <div class="ats-circle-gauge">
+                                        <span class="ats-percent">72%</span>
+                                    </div>
+                                    <div class="ats-gauge-desc">
+                                        <strong>ATS Compatibility</strong>
+                                        <p>Your resume is good, but can be improved.</p>
+                                    </div>
+                                </div>
+                                <div class="ats-checklist">
+                                    <div class="ats-check-item">
+                                        <span class="ats-bullet">•</span>
+                                        <span class="ats-label">Keywords</span>
+                                        <span class="ats-status-icon icon-pass"><i class="fas fa-check"></i></span>
+                                    </div>
+                                    <div class="ats-check-item">
+                                        <span class="ats-bullet">•</span>
+                                        <span class="ats-label">Formatting</span>
+                                        <span class="ats-status-icon icon-warn"><i class="fas fa-exclamation-triangle"></i></span>
+                                    </div>
+                                    <div class="ats-check-item">
+                                        <span class="ats-bullet">•</span>
+                                        <span class="ats-label">Skills Match</span>
+                                        <span class="ats-status-icon icon-pass"><i class="fas fa-check"></i></span>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="ats-widget-footer">
+                                <button class="btn-widget-action btn-full" onclick="runAtsQuickCheck()">Check Again</button>
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Cloud Storage -->
+                        <div class="tool-widget-card cloud-widget-card">
+                            <div class="widget-card-header">
+                                <h3>Cloud Storage</h3>
+                                <button class="link-see-all" onclick="openComingSoonModal('Cloud Storage Integrations')">See all</button>
+                            </div>
+                            <div class="cloud-widget-body">
+                                <div class="cloud-drive-item">
+                                    <div class="drive-icon-box"><i class="far fa-folder"></i></div>
+                                    <div class="drive-info-box">
+                                        <div class="drive-title-row">
+                                            <span>My Drive</span>
+                                            <span class="drive-usage-text">12.45 GB / 50 GB</span>
+                                        </div>
+                                        <div class="drive-track">
+                                            <div class="drive-fill" style="width: 24.9%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cloud-drive-item">
+                                    <div class="drive-icon-box"><i class="fas fa-user-friends"></i></div>
+                                    <div class="drive-info-box">
+                                        <div class="drive-title-row">
+                                            <span>Shared with me</span>
+                                            <span class="drive-usage-text">3.21 GB / 50 GB</span>
+                                        </div>
+                                        <div class="drive-track">
+                                            <div class="drive-fill" style="width: 6.4%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cloud-widget-footer">
+                                <button class="cloud-sync-btn" onclick="openComingSoonModal('Direct Cloud Sync')" title="Sync Cloud Drive">
+                                    <i class="fas fa-cloud-arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Bottom Full-Width AI Assistant Strip -->
+                    <div class="ai-assistant-banner-card">
+                        <div class="ai-banner-left">
+                            <div class="ai-sparkle-icon">
+                                <i class="fas fa-sparkles"></i>
+                            </div>
+                            <div class="ai-text-block">
+                                <h4>AI Assistant</h4>
+                                <p>Summarize, analyze, translate, and more with NeuroCore AI.</p>
+                            </div>
+                        </div>
+                        <div class="ai-banner-right">
+                            <form class="ai-input-form" onsubmit="submitAiAssistantQuery(event)">
+                                <input type="text" id="aiAssistantInput" placeholder="Ask anything about your documents..." autocomplete="off">
+                                <button type="submit" class="ai-send-btn" title="Send to AI">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- PDF Tools Section -->
+                <section id="pdf-tools-section" class="content-section">
+                    <div class="section-top-header">
+                        <h2>PDF Tools Suite</h2>
+                        <p>Protect, encrypt, organize, and manage PDF documents with native utilities</p>
+                    </div>
+                    <div class="pdf-tools-grid">
+                        <div class="pdf-tool-box" onclick="openProtectModalDirect()">
+                            <i class="fas fa-lock-alt"></i>
+                            <h4>Protect PDF</h4>
+                            <p>Encrypt document with 256-bit password security</p>
+                        </div>
+                        <div class="pdf-tool-box" onclick="switchSection('protected')">
+                            <i class="fas fa-key"></i>
+                            <h4>Protected PDFs</h4>
+                            <p>Manage and unlock protected files</p>
+                        </div>
+                        <div class="pdf-tool-box" onclick="openComingSoonModal('Merge PDFs')">
+                            <i class="fas fa-layer-group"></i>
+                            <h4>Merge PDFs</h4>
+                            <p>Combine multiple PDF files into one</p>
+                        </div>
+                        <div class="pdf-tool-box" onclick="openComingSoonModal('PDF Text Extractor')">
+                            <i class="fas fa-file-export"></i>
+                            <h4>Extract Text</h4>
+                            <p>Export textual content & tables</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Protected PDFs View -->
+                <section id="protected-section" class="content-section">
+                    <div class="section-top-header">
+                        <h2>🔒 Protected Workspace</h2>
+                        <p>Securely encrypted PDFs with password authentication</p>
+                    </div>
+                    <div class="dashboard-card protected-card">
+                        <div class="card-header">
+                            <h3>Files with 256-bit AES Encryption</h3>
+                            <span class="badge" id="protected-count">0 files</span>
+                        </div>
+                        <div class="card-body">
+                            <p id="protectedStatusMessage" style="display: none; color: #ff4d4f; margin-bottom: 12px;"></p>
+                            <div id="protectedPdfList" class="file-list">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- DOCX View -->
+                <section id="docx-section" class="content-section">
+                    <div class="section-top-header">
+                        <h2>📝 DOCX Documents</h2>
+                        <p>Preview formatted Word documents, make text edits, and save back to .docx</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Uploaded Word Documents</h3>
+                            <span class="badge" id="docx-count">0 files</span>
+                        </div>
+                        <div class="card-body">
+                            <p id="docxStatusMessage" style="display: none; color: #ff4d4f; margin-bottom: 12px;"></p>
+                            <div id="docxFileList" class="file-list">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ===================================== -->
+    <!-- Modals & Overlays -->
+    <!-- ===================================== -->
+
+    <!-- "Coming Soon" Modal for Roadmap Features -->
+    <div id="coming-soon-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content coming-soon-modal-content">
+            <div class="modal-header">
+                <div class="coming-soon-header-tag">
+                    <i class="fas fa-sparkles"></i>
+                    <span>IN ACTIVE DEVELOPMENT</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeComingSoonModal()">&times;</button>
+            </div>
+            <div class="modal-body coming-soon-body">
+                <div class="coming-soon-icon-ring">
+                    <i id="comingSoonIcon" class="fas fa-rocket"></i>
+                </div>
+                <h3 id="comingSoonTitle">Feature Coming Soon</h3>
+                <p id="comingSoonDesc">This feature is actively being integrated into NeuroCore Office. It will be available in the upcoming v1.1 release.</p>
+                
+                <div class="coming-soon-feature-box">
+                    <div class="feature-bullet"><i class="fas fa-check-circle"></i> <span>Full cloud sync and cross-device collaboration</span></div>
+                    <div class="feature-bullet"><i class="fas fa-check-circle"></i> <span>Native formatting, macros, and formula calculation</span></div>
+                    <div class="feature-bullet"><i class="fas fa-check-circle"></i> <span>End-to-end encrypted storage vault</span></div>
+                </div>
+
+                <div class="modal-footer coming-soon-footer">
+                    <button type="button" class="action-btn btn-secondary" onclick="closeComingSoonModal()">Close</button>
+                    <button type="button" class="action-btn btn-primary" onclick="notifyComingSoon()">
+                        <i class="fas fa-bell"></i> Notify Me When Available
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Builder Modal -->
+    <div id="resume-builder-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content resume-builder-modal-content">
+            <div class="modal-header">
+                <h2><i class="far fa-id-badge"></i> Resume Builder Studio</h2>
+                <button class="modal-close-btn" onclick="closeResumeBuilderModal()">&times;</button>
+            </div>
+            <div class="modal-body resume-builder-body">
+                <div class="resume-form-pane">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="resumeName" value="John Doe" oninput="updateResumePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Professional Title</label>
+                        <input type="text" id="resumeTitle" value="Senior Software Engineer" oninput="updateResumePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Email & Contact</label>
+                        <input type="text" id="resumeContact" value="john.doe@example.com | (555) 019-2834" oninput="updateResumePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Executive Summary</label>
+                        <textarea id="resumeSummary" rows="3" oninput="updateResumePreview()">Results-driven software engineer with 6+ years of experience designing scalable web architectures and leading high-performing teams.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Key Skills (comma-separated)</label>
+                        <input type="text" id="resumeSkills" value="TypeScript, React, Node.js, Python, PostgreSQL, System Design" oninput="updateResumePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Work Experience</label>
+                        <textarea id="resumeExperience" rows="4" oninput="updateResumePreview()">Senior Engineer at TechCorp (2022-Present): Architected microservices improving latency by 42%. Built cloud document management systems.</textarea>
+                    </div>
+                </div>
+                <div class="resume-preview-pane">
+                    <div class="resume-preview-sheet" id="resumePreviewSheet">
+                        <!-- Dynamic Resume Render -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-btn btn-secondary" onclick="closeResumeBuilderModal()">Close</button>
+                <button type="button" class="action-btn btn-primary" onclick="exportResumeAsDoc()">
+                    <i class="fas fa-download"></i> Save & Export Resume
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATS Checker Modal -->
+    <div id="ats-checker-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content ats-checker-modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-shield-alt"></i> ATS Resume Compatibility Checker</h2>
+                <button class="modal-close-btn" onclick="closeAtsCheckerModal()">&times;</button>
+            </div>
+            <div class="modal-body ats-checker-body">
+                <div class="ats-input-section">
+                    <div class="form-group">
+                        <label>Target Job Title or Keywords</label>
+                        <input type="text" id="atsTargetKeywords" value="Full Stack Developer, React, Node.js, Cloud, SQL">
+                    </div>
+                    <div class="form-group">
+                        <label>Paste Resume Text or Select Uploaded Document</label>
+                        <textarea id="atsResumeContent" rows="6" placeholder="Paste resume plain text here to scan..."></textarea>
+                    </div>
+                    <button class="action-btn btn-primary" onclick="scanAtsResume()">
+                        <i class="fas fa-microscope"></i> Run ATS Scan
+                    </button>
+                </div>
+                <div class="ats-results-section" id="atsResultsSection">
+                    <div class="ats-score-display">
+                        <div class="score-ring-large">
+                            <span id="atsScoreValue">85%</span>
+                        </div>
+                        <div class="score-summary">
+                            <h4 id="atsSummaryHeadline">Strong ATS Match</h4>
+                            <p id="atsSummaryText">Your resume matches 85% of standard ATS parser requirements.</p>
+                        </div>
+                    </div>
+                    <div class="ats-breakdown-list">
+                        <div class="breakdown-item pass"><i class="fas fa-check-circle"></i> Standard Font and Layout</div>
+                        <div class="breakdown-item pass"><i class="fas fa-check-circle"></i> Contact Info Parsable</div>
+                        <div class="breakdown-item pass"><i class="fas fa-check-circle"></i> Section Headings Detected</div>
+                        <div class="breakdown-item warn"><i class="fas fa-exclamation-circle"></i> Add more quantitative impact metrics</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Modal Dialog -->
+    <div id="ai-assistant-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content ai-modal-content">
+            <div class="modal-header">
+                <div class="ai-modal-title">
+                    <i class="fas fa-sparkles"></i>
+                    <h2>NeuroCore AI Document Assistant</h2>
+                </div>
+                <button class="modal-close-btn" onclick="closeAiAssistantModal()">&times;</button>
+            </div>
+            <div class="modal-body ai-chat-body">
+                <div class="ai-messages-container" id="aiChatMessages">
+                    <div class="ai-chat-bubble assistant">
+                        <div class="ai-avatar"><i class="fas fa-sparkles"></i></div>
+                        <div class="bubble-text">
+                            Hello! I am your NeuroCore Document Assistant. I can summarize your documents, extract insights, analyze ATS resumes, or assist with drafting documents. How can I help you today?
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <!-- Protected PDFs View -->
-            <section id="protected-section" class="content-section">
-                <div class="section-header">
-                    <h1>🔒 Protected Workspace</h1>
-                    <p>Securely encrypted PDFs using qpdf protection</p>
+                <div class="ai-quick-prompts">
+                    <button onclick="sendQuickAiPrompt('Summarize my recent documents')">📄 Summarize Recent Docs</button>
+                    <button onclick="sendQuickAiPrompt('How do I encrypt a PDF?')">🔒 How to Protect PDF</button>
+                    <button onclick="sendQuickAiPrompt('Tips to improve my ATS resume score')">🎯 Improve ATS Score</button>
                 </div>
-
-                <div class="dashboard-card protected-card">
-                    <div class="card-header">
-                        <h3>Files with 256-bit AES Encryption</h3>
-                        <span class="badge" id="protected-count">0 files</span>
-                    </div>
-                    <div class="card-body">
-                        <p id="protectedStatusMessage" style="display: none; color: #ff4d4f; margin-bottom: 12px;"></p>
-                        <div id="protectedPdfList" class="file-list">
-                            <!-- Dynamic content -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="docx-section" class="content-section">
-                <div class="section-header">
-                    <h1>📝 DOCX Documents</h1>
-                    <p>Preview formatted Word documents, make light text edits, and save back to .docx</p>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3>Upload DOCX</h3>
-                    </div>
-                    <div class="card-body">
-                        <p id="docxStatusMessage" style="display: none; color: #ff4d4f; margin-bottom: 12px;"></p>
-                        <input type="file" id="docxFileInput" accept=".docx">
-                        <button class="btn btn-primary" onclick="uploadDocxFile()">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                    </div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3>Uploaded DOCX Files</h3>
-                        <span class="badge" id="docx-count">0 files</span>
-                    </div>
-                    <div class="card-body">
-                        <div id="docxFileList" class="file-list">
-                            <!-- Dynamic content -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-        </main>
+                <form class="ai-chat-form" onsubmit="handleAiChatSubmit(event)">
+                    <input type="text" id="aiChatInput" placeholder="Ask anything about your workspace documents..." autocomplete="off">
+                    <button type="submit" class="action-btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Protect PDF Modal -->
@@ -348,10 +767,13 @@
             </div>
             <div class="modal-body">
                 <form id="protect-pdf-form" onsubmit="submitProtectPDF(event)">
+                    <div class="form-group" id="protect-file-select-group" style="display:none;">
+                        <label for="protect-select-file">Select PDF</label>
+                        <select id="protect-select-file" onchange="currentFileToProtect = this.value"></select>
+                    </div>
                     <div class="form-group">
                         <label for="protect-password">Password</label>
-                        <input type="password" id="protect-password" placeholder="Enter password to protect PDF"
-                            required>
+                        <input type="password" id="protect-password" placeholder="Enter password to protect PDF" required>
                     </div>
 
                     <div class="form-checkbox-group">
@@ -379,8 +801,7 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="action-btn btn-secondary"
-                            onclick="closeProtectModal()">Cancel</button>
+                        <button type="button" class="action-btn btn-secondary" onclick="closeProtectModal()">Cancel</button>
                         <button type="submit" class="action-btn btn-primary">Protect PDF</button>
                     </div>
                 </form>
@@ -402,8 +823,7 @@
                         <input type="text" id="rename-newname" placeholder="Enter new name" required>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="action-btn btn-secondary"
-                            onclick="closeRenameModal()">Cancel</button>
+                        <button type="button" class="action-btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
                         <button type="submit" class="action-btn btn-primary">Rename</button>
                     </div>
                 </form>
@@ -432,136 +852,63 @@
                         </select>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="action-btn btn-secondary"
-                            onclick="closeMoveModal()">Cancel</button>
-                        <button type="submit" class="action-btn btn-primary">Move PDF</button>
+                        <button type="button" class="action-btn btn-secondary" onclick="closeMoveModal()">Cancel</button>
+                        <button type="submit" class="action-btn btn-primary">Move Document</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Copy PDF Modal -->
-    <div id="copy-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>📄 Copy Document to Folder</h2>
-                <button class="modal-close-btn" onclick="closeCopyModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="copy-pdf-form" onsubmit="submitCopyPDF(event)">
-                    <div class="form-group">
-                        <label for="copy-folder">Select Category Folder</label>
-                        <select id="copy-folder" required>
-                            <option value="" disabled selected>Select a folder...</option>
-                            <option value="Books">📚 Books</option>
-                            <option value="College">🎓 College</option>
-                            <option value="Notes">📝 Notes</option>
-                            <option value="Projects">💻 Projects</option>
-                            <option value="Archive">🗄️ Archive</option>
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="action-btn btn-secondary"
-                            onclick="closeCopyModal()">Cancel</button>
-                        <button type="submit" class="action-btn btn-primary">Copy PDF</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Tags Modal -->
-    <div id="tags-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🏷️ Edit Tags for <span id="tags-modal-filename"></span></h2>
-                <button class="modal-close-btn" onclick="closeTagsModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="edit-tags-form" onsubmit="submitEditTags(event)">
-                    <div class="form-group">
-                        <label for="tags-input">Tags (comma-separated)</label>
-                        <input type="text" id="tags-input" placeholder="e.g. college, homework, important">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="action-btn btn-secondary"
-                            onclick="closeTagsModal()">Cancel</button>
-                        <button type="submit" class="action-btn btn-primary">Save Tags</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <!-- ===================================== -->
-    <!-- Manage Tags Modal -->
-    <!-- ===================================== -->
-
+    <!-- Tag Manager Modal -->
     <div id="tagModal" class="modal-overlay" style="display: none;">
-
         <div class="modal-content">
-
             <div class="modal-header">
-
                 <h2>🏷 Manage Tags</h2>
-
-                <button class="modal-close-btn" onclick="closeTagManager()">
-                    &times;
-                </button>
-
+                <button class="modal-close-btn" onclick="closeTagManager()">&times;</button>
             </div>
-
             <div class="modal-body">
-
                 <div class="form-group">
-
                     <label>Document</label>
-
                     <input type="text" id="tagDocumentName" readonly>
-
                 </div>
-
                 <div class="form-group">
-
                     <label>Current Tags</label>
-
-                    <div id="currentTags">
-
-                        Loading...
-
-                    </div>
-
+                    <div id="currentTags">Loading...</div>
                 </div>
-
                 <div class="form-group">
-
                     <label>New Tag</label>
-
-                    <input type="text" id="newTagInput" placeholder="Enter tag...">
-
+                    <input type="text" id="newTagInput" placeholder="Enter tag..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag();}">
                 </div>
-
                 <div class="modal-footer">
-
-                    <button class="action-btn btn-secondary" onclick="closeTagManager()">
-
-                        Cancel
-
-                    </button>
-
-                    <button class="action-btn btn-primary" id="addTagBtn" onclick="addTag()">
-
-                        Add Tag
-
-                    </button>
-
+                    <button class="action-btn btn-secondary" onclick="closeTagManager()">Cancel</button>
+                    <button class="action-btn btn-primary" id="addTagBtn" onclick="addTag()">Add Tag</button>
                 </div>
-
             </div>
-
         </div>
-
     </div>
+
+    <!-- Quick Preview Modal -->
+    <div id="preview-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content preview-modal-content">
+            <div class="modal-header">
+                <h2 id="previewModalTitle"><i class="fas fa-file-alt"></i> Document Preview</h2>
+                <button class="modal-close-btn" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="modal-body preview-modal-body">
+                <div id="previewModalContent" class="preview-inner-content">
+                    <!-- Dynamic preview canvas or iframe -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-btn btn-secondary" onclick="closePreviewModal()">Close</button>
+                <button type="button" class="action-btn btn-primary" id="previewOpenDirectBtn">
+                    <i class="fas fa-external-link-alt"></i> Open Full View
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 

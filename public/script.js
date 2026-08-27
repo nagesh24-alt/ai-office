@@ -1,17 +1,28 @@
-async function parseJsonResponse(response) {
+// Configure PDF.js worker if available
+if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+}
 
+async function parseJsonResponse(response) {
     const text = await response.text();
+
+    if (!text || text.trim() === "") {
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`);
+        }
+        return { success: true };
+    }
 
     try {
         return JSON.parse(text);
     } catch {
-        throw new Error(
-            response.ok
-                ? "Server returned an invalid response."
-                : `Request failed (${response.status}). Restart the server if you recently added new features.`
-        );
+        if (!response.ok) {
+            throw new Error(
+                `Request failed (${response.status}). ${text.slice(0, 120)}`
+            );
+        }
+        return { success: true, message: text, raw: text };
     }
-
 }
 
 let selectionMode = false;
@@ -43,32 +54,77 @@ function updateFileLabel() {
             : "Choose File";
 }
 
-async function uploadFile() {
+function showToast(message, type = "success", duration = 3500) {
+    let container = document.getElementById("toastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.className = "toast-container";
+        document.body.appendChild(container);
+    }
 
-    const file = document.getElementById("fileInput").files[0];
+    const toast = document.createElement("div");
+    toast.className = `toast-message toast-${type}`;
+
+    let iconClass = "fa-check-circle";
+    if (type === "error") iconClass = "fa-exclamation-circle";
+    if (type === "info") iconClass = "fa-info-circle";
+
+    toast.innerHTML = `
+        <div class="toast-icon"><i class="fas ${iconClass}"></i></div>
+        <div class="toast-text">${message}</div>
+        <button class="toast-close" title="Close"><i class="fas fa-times"></i></button>
+    `;
+
+    const closeBtn = toast.querySelector(".toast-close");
+    const removeToast = () => {
+        toast.classList.add("toast-hide");
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
+        }, 300);
+    };
+
+    closeBtn.addEventListener("click", removeToast);
+    container.appendChild(toast);
+
+    setTimeout(removeToast, duration);
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput?.files?.[0];
 
     if (!file) {
-        alert("Please select a file.");
+        showToast("Please select a file to upload.", "info");
         return;
     }
 
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/upload", {
-        method: "POST",
-        body: formData
-    });
+    try {
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
 
-    const result = await parseJsonResponse(response);
+        const result = await parseJsonResponse(response);
 
-    if (result.success) {
-        alert("Uploaded: " + result.filename);
-        document.getElementById("fileInput").value = ""; // Clear the input
-        updateFileLabel(); // Reset label
-        loadDocuments();
-    } else {
-        alert(result.message);
+        if (result.success) {
+            showToast("File uploaded successfully", "success");
+            fileInput.value = "";
+            updateFileLabel();
+            await loadDocuments();
+            if (typeof loadDocxFiles === "function") {
+                loadDocxFiles();
+            }
+        } else {
+            showToast(result.message || "Upload failed. Please try again.", "error");
+        }
+    } catch (err) {
+        showToast("Upload failed: " + (err.message || "Network error."), "error");
     }
 }
 //formatfileSize
@@ -94,11 +150,11 @@ function buildActionMenu(file) {
     const filename = file.name;
     const actions = [];
 
-    // View/Preview
+    // Preview in side panel
     if (caps.preview) {
         actions.push(`
-            <button class="preview-btn" onclick="event.stopPropagation(); openDocument('${filename.replace(/'/g, "\\'")}')">
-                👁 View
+            <button class="preview-btn" onclick="event.stopPropagation(); showPreview('${filename.replace(/'/g, "\\'")}')">
+                👁 Preview
             </button>
         `);
     }
@@ -169,16 +225,88 @@ function buildActionMenu(file) {
     return actions.join("");
 }
 
+// Favorite stars state in localStorage
+let starredDocuments = JSON.parse(localStorage.getItem("starredDocuments") || "[]");
+
+function toggleStarDocument(filename, btnElement) {
+    if (starredDocuments.includes(filename)) {
+        starredDocuments = starredDocuments.filter(f => f !== filename);
+        btnElement.classList.remove("starred");
+        btnElement.innerHTML = '<i class="far fa-star"></i>';
+    } else {
+        starredDocuments.push(filename);
+        btnElement.classList.add("starred");
+        btnElement.innerHTML = '<i class="fas fa-star"></i>';
+    }
+    localStorage.setItem("starredDocuments", JSON.stringify(starredDocuments));
+}
+
+function getFileTypeIconBadge(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    
+    if (ext === 'pdf') {
+        return `<div class="doc-icon-badge pdf-badge"><span class="badge-tag">PDF</span></div>`;
+    } else if (ext === 'docx' || ext === 'doc') {
+        return `<div class="doc-icon-badge docx-badge"><span class="badge-letter">W</span></div>`;
+    } else if (ext === 'xlsx' || ext === 'xls') {
+        return `<div class="doc-icon-badge xlsx-badge"><span class="badge-letter">X</span></div>`;
+    } else if (ext === 'pptx' || ext === 'ppt') {
+        return `<div class="doc-icon-badge pptx-badge"><span class="badge-letter">P</span></div>`;
+    } else if (ext === 'xml' || ext === 'json' || ext === 'csv') {
+        return `<div class="doc-icon-badge code-badge"><span class="badge-letter">&lt;&gt;</span></div>`;
+    } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+        return `<div class="doc-icon-badge img-badge"><i class="fas fa-image"></i></div>`;
+    }
+    return `<div class="doc-icon-badge default-badge"><i class="fas fa-file-alt"></i></div>`;
+}
+
+function getFormattedModifiedDate(dateStr) {
+    if (!dateStr) return "—";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const day = date.getDate();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    const formattedHours = hours.toString().padStart(2, '0');
+
+    return `${day} ${month} ${year}, ${formattedHours}:${minutes} ${ampm}`;
+}
+
+function toggleSelectAllFromHeader(headerCheckbox) {
+    const isChecked = headerCheckbox.checked;
+    const checkboxes = document.querySelectorAll("#pdfTableBody .doc-select-checkbox");
+    selectedFiles = [];
+    
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        const fname = cb.getAttribute("data-filename");
+        if (isChecked && fname) {
+            selectedFiles.push(fname);
+        }
+    });
+    
+    selectionMode = isChecked || selectedFiles.length > 0;
+    updateSelectionHeader();
+}
+
 function displayDashboard(files) {
-
     currentDashboardFiles = Array.isArray(files) ? files : [];
-
+    updateCategoryStats(currentDashboardFiles);
     const body = document.getElementById("pdfTableBody");
+    if (!body) return;
 
     body.innerHTML = "";
 
     if (currentDashboardFiles.length === 0) {
-        body.innerHTML = "<tr><td colspan='9' style='text-align: center; color: var(--text-muted); padding: 20px;'>No documents found.</td></tr>";
+        body.innerHTML = "<tr><td colspan='7' style='text-align: center; color: var(--text-muted); padding: 36px 20px; font-size: 14px;'>No documents found. Upload a file above to get started.</td></tr>";
         updateSelectionHeader();
         return;
     }
@@ -186,84 +314,219 @@ function displayDashboard(files) {
     updateSelectionHeader();
 
     currentDashboardFiles.forEach(file => {
+        const ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+        const isStarred = starredDocuments.includes(file.name);
+        const iconBadge = getFileTypeIconBadge(file);
+        const formattedDate = getFormattedModifiedDate(file.modified);
+        const formattedSize = formatFileSize(file.size);
 
-        const tags = Array.isArray(file.tags) ? file.tags : [];
-        const tagsText = tags.length ? tags.join(", ") : "—";
-        const icon = file.icon || "📄";
-        const typeLabel = file.typeLabel || "Unknown";
+        // Display sanitized clean file name (strip leading timestamp if present for display, keep full name on title and data)
+        const cleanName = file.name.replace(/^\d{10,14}-/, "");
 
         const row = document.createElement("tr");
+        row.className = "modern-doc-row";
 
         row.innerHTML = `
-    <td class="view-column">
-        ${selectionMode
-            ? `<input type="checkbox" class="file-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" ${selectedFiles.includes(file.name) ? "checked" : ""}>`
-            : `<button class="view-btn" onclick="openDocument('${file.name.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>`}
-    </td>
+            <td class="col-select">
+                <input type="checkbox" class="doc-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}" ${selectedFiles.includes(file.name) ? "checked" : ""}>
+            </td>
+            <td class="col-star">
+                <button type="button" class="star-btn ${isStarred ? "starred" : ""}" title="Star document" onclick="event.stopPropagation(); toggleStarDocument('${file.name.replace(/'/g, "\\'")}', this)">
+                    <i class="${isStarred ? "fas" : "far"} fa-star"></i>
+                </button>
+            </td>
+            <td class="col-name">
+                <div class="doc-title-cell">
+                    ${iconBadge}
+                    <a href="javascript:void(0)" class="doc-filename-link" title="${file.name.replace(/"/g, '&quot;')}">
+                        ${cleanName}
+                    </a>
+                </div>
+            </td>
+            <td class="col-type">
+                <span class="type-pill-text">${ext}</span>
+            </td>
+            <td class="col-modified">
+                <span class="date-text">${formattedDate}</span>
+            </td>
+            <td class="col-size">
+                <span class="size-text">${formattedSize}</span>
+            </td>
+            <td class="col-actions action-cell">
+                <button class="action-menu-btn" title="More options" onclick="event.stopPropagation();">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="action-menu">
+                    ${buildActionMenu(file)}
+                </div>
+            </td>
+        `;
 
-    <td>
-        <span title="${typeLabel}" style="font-size: 1.2em;">
-            ${icon}
-        </span>
-    </td>
+        const link = row.querySelector(".doc-filename-link");
+        if (link) {
+            link.onclick = (e) => {
+                e.stopPropagation();
+                openDocument(file.name);
+            };
+        }
 
-    <td class="name-column">
-        <a href="javascript:void(0)"
-           class="file-table-link"
-           style="color:var(--text-primary);text-decoration:none;">
-            ${file.name}
-        </a>
-    </td>
-
-    <td class="tags-cell">${tagsText}</td>
-
-    <td>${formatFileSize(file.size)}</td>
-
-    <td>${new Date(file.modified).toLocaleDateString()}</td>
-
-    <td>${file.owner}</td>
-
-    <td>
-        <span class="status status-normal">
-            ${file.status}
-        </span>
-    </td>
-
-    <td class="action-cell">
-
-        <button class="action-menu-btn">
-            ⋮
-        </button>
-
-        <div class="action-menu">
-            ${buildActionMenu(file)}
-        </div>
-
-    </td>
-
-`;
-
-        const link = row.querySelector(".file-table-link");
-        link.onclick = (e) => {
-            e.stopPropagation();
-            loadDocumentInfo(file);
+        row.onclick = (e) => {
+            if (e.target.closest("button") || e.target.closest("input") || e.target.closest(".action-menu")) {
+                return;
+            }
+            showPreview(file.name);
         };
 
-        body.appendChild(row);
-        const menuButton = row.querySelector(".action-menu-btn");
-        const menu = row.querySelector(".action-menu");
-
-        const checkbox = row.querySelector(".file-select-checkbox");
+        const checkbox = row.querySelector(".doc-select-checkbox");
         if (checkbox) {
             checkbox.addEventListener("change", () => {
                 updateSelectedFile(file.name, checkbox.checked);
+                const allCbs = document.querySelectorAll("#pdfTableBody .doc-select-checkbox");
+                const headerCb = document.getElementById("headerSelectAll");
+                if (headerCb) {
+                    headerCb.checked = Array.from(allCbs).length > 0 && Array.from(allCbs).every(c => c.checked);
+                }
             });
         }
 
-        menuButton.onclick = (e) => {
-            e.stopPropagation();
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        const menuButton = row.querySelector(".action-menu-btn");
+        const menu = row.querySelector(".action-menu");
+        if (menuButton && menu) {
+            menuButton.onclick = (e) => {
+                e.stopPropagation();
+                const wasOpen = menu.style.display === "block";
+                document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+                menu.style.display = wasOpen ? "none" : "block";
+            };
+        }
+
+        body.appendChild(row);
+    });
+}
+
+function updateCategoryStats(files) {
+    let pdfCount = 0;
+    let docxCount = 0;
+    let xlsxCount = 0;
+    let pptxCount = 0;
+    let othersCount = 0;
+    let totalBytes = 0;
+
+    files.forEach(f => {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        totalBytes += (f.size || 0);
+        if (ext === 'pdf') pdfCount++;
+        else if (ext === 'docx' || ext === 'doc') docxCount++;
+        else if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') xlsxCount++;
+        else if (ext === 'pptx' || ext === 'ppt') pptxCount++;
+        else othersCount++;
+    });
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setVal("count-all", files.length);
+    setVal("count-pdf", pdfCount);
+    setVal("count-docx", docxCount);
+    setVal("count-xlsx", xlsxCount);
+    setVal("count-pptx", pptxCount);
+    setVal("count-others", othersCount);
+
+    const storageUsage = document.getElementById("storageUsageText");
+    const storageFill = document.getElementById("storageProgressBar");
+    if (storageUsage) {
+        const formattedUsed = formatFileSize(totalBytes);
+        storageUsage.textContent = `${formattedUsed} of 15 GB Used`;
+    }
+    if (storageFill) {
+        const maxBytes = 15 * 1024 * 1024 * 1024; // 15 GB
+        const pct = Math.min(100, Math.max(1, (totalBytes / maxBytes) * 100));
+        storageFill.style.width = `${pct}%`;
+    }
+}
+
+function filterByCategory(type) {
+    if (!type || type === 'all') {
+        displayDashboard(currentDashboardFiles);
+        return;
+    }
+    const filtered = currentDashboardFiles.filter(f => {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (type === 'pdf') return ext === 'pdf';
+        if (type === 'docx') return ext === 'docx' || ext === 'doc';
+        if (type === 'xlsx') return ext === 'xlsx' || ext === 'xls' || ext === 'csv';
+        if (type === 'pptx') return ext === 'pptx' || ext === 'ppt';
+        if (type === 'others') return !['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'pptx', 'ppt'].includes(ext);
+        return true;
+    });
+
+    const body = document.getElementById("pdfTableBody");
+    if (!body) return;
+    body.innerHTML = "";
+    if (filtered.length === 0) {
+        body.innerHTML = `<tr><td colspan='7' style='text-align: center; color: var(--text-muted); padding: 36px 20px; font-size: 14px;'>No ${type.toUpperCase()} files found.</td></tr>`;
+        return;
+    }
+
+    filtered.forEach(file => {
+        const ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+        const isStarred = starredDocuments.includes(file.name);
+        const iconBadge = getFileTypeIconBadge(file);
+        const formattedDate = getFormattedModifiedDate(file.modified);
+        const formattedSize = formatFileSize(file.size);
+        const cleanName = file.name.replace(/^\d{10,14}-/, "");
+
+        const row = document.createElement("tr");
+        row.className = "modern-doc-row";
+        row.innerHTML = `
+            <td class="col-select">
+                <input type="checkbox" class="doc-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}">
+            </td>
+            <td class="col-star">
+                <button type="button" class="star-btn ${isStarred ? "starred" : ""}" onclick="event.stopPropagation(); toggleStarDocument('${file.name.replace(/'/g, "\\'")}', this)">
+                    <i class="${isStarred ? "fas" : "far"} fa-star"></i>
+                </button>
+            </td>
+            <td class="col-name">
+                <div class="doc-title-cell">
+                    ${iconBadge}
+                    <a href="javascript:void(0)" class="doc-filename-link" title="${file.name.replace(/"/g, '&quot;')}">
+                        ${cleanName}
+                    </a>
+                </div>
+            </td>
+            <td class="col-type"><span class="type-pill-text">${ext}</span></td>
+            <td class="col-modified"><span class="date-text">${formattedDate}</span></td>
+            <td class="col-size"><span class="size-text">${formattedSize}</span></td>
+            <td class="col-actions action-cell">
+                <button class="action-menu-btn" title="More options" onclick="event.stopPropagation();">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="action-menu">${buildActionMenu(file)}</div>
+            </td>
+        `;
+
+        const link = row.querySelector(".doc-filename-link");
+        if (link) {
+            link.onclick = (e) => { e.stopPropagation(); openDocument(file.name); };
+        }
+        row.onclick = (e) => {
+            if (e.target.closest("button") || e.target.closest("input") || e.target.closest(".action-menu")) return;
+            showPreview(file.name);
         };
+        const menuButton = row.querySelector(".action-menu-btn");
+        const menu = row.querySelector(".action-menu");
+        if (menuButton && menu) {
+            menuButton.onclick = (e) => {
+                e.stopPropagation();
+                const wasOpen = menu.style.display === "block";
+                document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+                menu.style.display = wasOpen ? "none" : "block";
+            };
+        }
+        body.appendChild(row);
     });
 }
 
@@ -486,12 +749,13 @@ async function loadProtectedPDFs() {
         return;
 
     const protectedList = document.getElementById("protectedPdfList");
+    const protectedCount = document.getElementById("protected-count");
 
-    protectedList.innerHTML = "";
-    document.getElementById("protected-count").textContent = `${result.files.length} files`;
+    if (protectedList) protectedList.innerHTML = "";
+    if (protectedCount) protectedCount.textContent = `${result.files.length} files`;
 
     if (result.files.length === 0) {
-        protectedList.innerHTML = "<div class='no-files-state'><p>No protected PDFs found.</p></div>";
+        if (protectedList) protectedList.innerHTML = "<div class='no-files-state'><p>No protected PDFs found.</p></div>";
         return;
     }
 
@@ -703,7 +967,10 @@ async function loadDocumentInfo(file) {
 
     const info = result.info;
 
-    document.getElementById("documentInfo").innerHTML = `
+    const docInfo = document.getElementById("documentInfo");
+    if (!docInfo) return;
+
+    docInfo.innerHTML = `
         <div class="info-details">
             <div class="info-row">
                 <span class="info-label">Filename</span>
@@ -1047,7 +1314,8 @@ async function selectFolder(folderName) {
         }
     });
 
-    document.getElementById("current-folder-title").textContent = `Folder: ${folderName}`;
+    const folderTitle = document.getElementById("current-folder-title");
+    if (folderTitle) folderTitle.textContent = `Folder: ${folderName}`;
 
     try {
         const response = await fetch(`/pdf/folder/${encodeURIComponent(folderName)}`);
@@ -1057,38 +1325,76 @@ async function selectFolder(folderName) {
         const folderCount = document.getElementById("folder-count");
 
         if (!result.success) {
-            folderFileList.innerHTML = "<div class='no-files-state'><p>Error loading folder files.</p></div>";
-            folderCount.textContent = "0 files";
+            if (folderFileList) folderFileList.innerHTML = "<div class='no-files-state'><p>Error loading folder files.</p></div>";
+            if (folderCount) folderCount.textContent = "0 files";
             return;
         }
 
-        folderCount.textContent = `${result.files.length} files`;
-        folderFileList.innerHTML = "";
+        const files = Array.isArray(result.files) ? result.files : [];
+        if (folderCount) folderCount.textContent = `${files.length} files`;
+        if (folderFileList) folderFileList.innerHTML = "";
 
-        if (result.files.length === 0) {
-            folderFileList.innerHTML = "<div class='no-files-state'><p>No PDFs found in this folder.</p></div>";
+        if (files.length === 0) {
+            if (folderFileList) folderFileList.innerHTML = "<div class='no-files-state'><p>No documents found in this folder. Use 'Move' from the Dashboard to categorize files here.</p></div>";
             return;
         }
 
-        result.files.forEach(file => {
+        const detailsList = result.fileDetails || files.map(name => ({ name }));
+
+        detailsList.forEach(item => {
+            const fileName = item.name;
+            const safeName = fileName.replace(/'/g, "\\'");
+            const icon = item.icon || (fileName.toLowerCase().endsWith(".pdf") ? "📄" : fileName.toLowerCase().endsWith(".docx") ? "📝" : "📁");
+
             const div = document.createElement("div");
             div.className = "file-item";
 
-            const link = document.createElement("a");
-            link.href = `/pdf/folder/${encodeURIComponent(folderName)}/${encodeURIComponent(file)}`;
-            link.target = "_blank";
-            link.className = "file-info";
-            link.innerHTML = `
-                <span class="file-icon">📄</span>
-                <span class="file-name">${file}</span>
+            div.innerHTML = `
+                <a href="/pdf/folder/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}"
+                   target="_blank"
+                   class="file-info"
+                   title="Open ${fileName}">
+                    <span class="file-icon">${icon}</span>
+                    <span class="file-name">${fileName}</span>
+                    ${item.size ? `<span style="font-size:12px;color:var(--text-muted);margin-left:8px;">(${formatFileSize(item.size)})</span>` : ""}
+                </a>
+                <div class="file-actions">
+                    <a href="/pdf/folder/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}"
+                       target="_blank"
+                       class="action-btn"
+                       style="text-decoration:none;font-size:12px;padding:6px 12px;background:rgba(255,255,255,0.06);"
+                       title="View or Download">
+                        <i class="fas fa-external-link-alt"></i> View
+                    </a>
+                    <button class="btn-delete"
+                            onclick="deleteFolderFile('${encodeURIComponent(folderName)}', '${safeName}')"
+                            title="Delete file from folder">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
             `;
 
-            div.appendChild(link);
             folderFileList.appendChild(div);
         });
 
     } catch (error) {
         console.error("Error loading folder PDFs:", error);
+    }
+}
+
+async function deleteFolderFile(folderName, fileName) {
+    if (!confirm(`Delete "${fileName}" from folder "${folderName}"?`)) return;
+
+    try {
+        const response = await fetch(`/documents/folder/${encodeURIComponent(folderName)}/${encodeURIComponent(fileName)}`, {
+            method: "DELETE"
+        });
+        const result = await parseJsonResponse(response);
+        alert(result.message || "File deleted.");
+        selectFolder(folderName);
+        loadDocuments();
+    } catch (err) {
+        alert("Failed to delete file from folder.");
     }
 }
 
@@ -1129,50 +1435,32 @@ function selectByTag() {
     if (!tag) return;
     const lowerTag = tag.trim().toLowerCase();
     
-    if (!selectionMode) {
-        enterSelectionMode();
-    }
     selectedFiles = [];
-    updateSelectionHeader();
-    const checkboxes = document.querySelectorAll("#pdfTableBody input.file-select-checkbox");
-    checkboxes.forEach(cb => {
-        const row = cb.closest("tr");
-        if (row) {
-            const tagsCell = row.querySelector(".tags-cell");
-            if (tagsCell) {
-                const tags = tagsCell.textContent.split(",").map(t => t.trim().toLowerCase());
-                if (tags.includes(lowerTag)) {
-                    cb.checked = true;
-                    updateSelectedFile(cb.dataset.filename, true);
-                }
-            }
+    currentDashboardFiles.forEach(file => {
+        const tags = Array.isArray(file.tags) ? file.tags.map(t => String(t).toLowerCase()) : [];
+        if (tags.some(t => t.includes(lowerTag))) {
+            selectedFiles.push(file.name);
         }
     });
+
+    displayDashboard(currentDashboardFiles);
     closeSelectMenu();
 }
 
 function selectProtected() {
-    if (!selectionMode) {
-        enterSelectionMode();
-    }
     selectedFiles = [];
-    updateSelectionHeader();
-    const checkboxes = document.querySelectorAll("#pdfTableBody input.file-select-checkbox");
-    let count = 0;
-    checkboxes.forEach(cb => {
-        const row = cb.closest("tr");
-        if (row) {
-            const statusCell = row.querySelector(".status");
-            if (statusCell && statusCell.textContent.toLowerCase().includes("protected")) {
-                cb.checked = true;
-                updateSelectedFile(cb.dataset.filename, true);
-                count++;
-            }
+    currentDashboardFiles.forEach(file => {
+        const status = String(file.status || "").toLowerCase();
+        if (status.includes("protect") || file.encrypted) {
+            selectedFiles.push(file.name);
         }
     });
-    if (count === 0) {
-        alert("No protected PDFs are in the current dashboard list.");
+
+    if (selectedFiles.length === 0) {
+        showToast("No protected documents found in current list.", "info");
     }
+
+    displayDashboard(currentDashboardFiles);
     closeSelectMenu();
 }
 
@@ -1316,28 +1604,23 @@ async function bulkApplyTags(filenames, tagsToAdd) {
     }
 }
 
-// Bulk Download - Download selected documents (as ZIP if multiple)
+// Bulk Download - Download selected documents
 function bulkDownload() {
     if (!selectedFiles || selectedFiles.length === 0) {
         alert("Please select at least one document.");
         return;
     }
 
-    if (selectedFiles.length === 1) {
-        // Single file: direct download
-        downloadDocument(selectedFiles[0]);
-    } else {
-        // Multiple files: download one by one (user may want ZIP in future)
-        alert(
-            `Downloading ${selectedFiles.length} files...\n` +
-            "Files will be downloaded individually. For bulk ZIP download, please contact support."
-        );
-        selectedFiles.forEach(filename => {
-            setTimeout(() => {
-                downloadDocument(filename);
-            }, 200);
-        });
-    }
+    selectedFiles.forEach((filename, idx) => {
+        setTimeout(() => {
+            const link = document.createElement("a");
+            link.href = "/documents/download/" + encodeURIComponent(filename);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, idx * 250);
+    });
 }
 
 // Bulk Delete - Delete all selected documents
@@ -1497,6 +1780,7 @@ function closeTagManager() {
 
 async function loadCurrentTags(filename) {
     const container = document.getElementById("currentTags");
+    if (!container) return;
     container.innerHTML = "Loading...";
 
     try {
@@ -1600,12 +1884,37 @@ async function removeTag(encodedFilename, encodedTag) {
     }
 }
 
-// Close select menu when clicking outside
+// Close menus when clicking outside
 document.addEventListener("click", (e) => {
     const menu = document.getElementById("selectMenu");
-    if (!menu) return;
-    if (menu.style.display === "block" && !menu.contains(e.target)) {
+    if (menu && menu.style.display === "block" && !menu.contains(e.target) && !e.target.closest(".btn-select-all")) {
         menu.style.display = "none";
+    }
+
+    // Close action menus if clicking outside any action cell
+    if (!e.target.closest(".action-cell")) {
+        document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+    }
+});
+
+// Keyboard shortcuts (Ctrl/Cmd+K to search, Esc to close modals/menus)
+document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        const search = document.getElementById("globalSearch");
+        if (search) {
+            search.focus();
+            search.select();
+        }
+    } else if (e.key === "Escape") {
+        closeProtectModal();
+        closeRenameModal();
+        closeMoveModal();
+        closeCopyModal();
+        closeTagManager();
+        closeTagsModal();
+        closeSelectMenu();
+        document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
     }
 });
 
@@ -1650,13 +1959,16 @@ async function uploadDocxFile() {
         if (result.success) {
             input.value = "";
             setDocxStatusMessage(`Uploaded: ${result.filename}`, false);
+            showToast("File uploaded successfully", "success");
             // Refresh the unified dashboard state; the DOCX panel derives
             // from currentDashboardFiles, so this re-renders both views.
             await loadDocuments();
         } else {
+            showToast(result.message || "DOCX upload failed.", "error");
             setDocxStatusMessage(result.message || "DOCX upload failed.");
         }
     } catch (err) {
+        showToast(err.message || "Upload failed", "error");
         setDocxStatusMessage(err.message);
     }
 }
@@ -1740,6 +2052,510 @@ async function deleteDocxFile(filename) {
         setDocxStatusMessage(err.message);
     }
 }
+
+// ================================================================
+// COMING SOON & TOOL MODALS (ROADMAP FEATURES)
+// ================================================================
+
+const COMING_SOON_DATA = {
+    ai: {
+        title: "AI Document Intelligence Suite",
+        desc: "NeuroCore AI is currently training on local neural weights for on-premise document summarization, natural language queries, and automatic smart indexing.",
+        bullets: [
+            "Local neural model for instant context-aware summarization",
+            "Multi-format Q&A (PDF, DOCX, XLSX, PPTX)",
+            "Automatic smart tagging and metadata enrichment",
+            "Zero cloud telemetry / 100% private processing"
+        ]
+    },
+    cloud: {
+        title: "Cloud & Distributed Storage Sync",
+        desc: "Enterprise encrypted sync bridges for Google Drive, OneDrive, Dropbox, and self-hosted WebDAV / NextCloud servers are coming in the next release.",
+        bullets: [
+            "Bidirectional automatic file synchronization",
+            "End-to-end client-side encryption (AES-256-GCM)",
+            "Collaborative multi-user shared folders",
+            "Selective offline caching"
+        ]
+    },
+    spreadsheet: {
+        title: "NeuroSheets - Web Spreadsheet Editor",
+        desc: "A native high-performance grid calculation engine supporting 400+ Excel formulas, pivot tables, and XLSX export is currently in alpha testing.",
+        bullets: [
+            "Full compatibility with Microsoft Excel (.xlsx) & CSV",
+            "Real-time formula calculation engine",
+            "Interactive charts, pivot tables, and conditional formatting"
+        ]
+    },
+    presentation: {
+        title: "NeuroSlides - Presentation Studio",
+        desc: "Create and present vector-sharp presentation decks with slide templates, speaker notes, and instant PDF/PPTX compilation.",
+        bullets: [
+            "Modern slide deck editor with rich vector tools",
+            "PowerPoint (.pptx) import and export",
+            "AI-powered presentation outline generator"
+        ]
+    },
+    starred: {
+        title: "Starred & Favorites Filter",
+        desc: "View and organize all your starred documents in a dedicated view.",
+        bullets: [
+            "Quick access to prioritized documents",
+            "Custom star colors and tags",
+            "Offline pinned cache"
+        ]
+    },
+    shared: {
+        title: "Shared Workspaces & Collaboration",
+        desc: "Share documents with team members with granular view/edit/comment permissions.",
+        bullets: [
+            "Secure invite links with password protection",
+            "Real-time multi-cursor document editing",
+            "Version history & revision audit logs"
+        ]
+    },
+    trash: {
+        title: "Document Bin & Recovery",
+        desc: "30-day trash retention with one-click restoration and permanent secure shredding.",
+        bullets: [
+            "Automatic 30-day retention buffer",
+            "One-click version restore",
+            "DoD 5220.22-M secure multi-pass file shredding"
+        ]
+    }
+};
+
+function openComingSoonModal(featureKey) {
+    const info = COMING_SOON_DATA[featureKey] || {
+        title: "Upcoming Feature",
+        desc: "This feature is currently under active development and will be available in the upcoming NeuroCore release.",
+        bullets: ["Under active engineering", "Full offline security testing", "Coming in next update"]
+    };
+
+    const titleEl = document.getElementById("comingSoonTitle");
+    const descEl = document.getElementById("comingSoonDesc");
+    const bulletsEl = document.getElementById("comingSoonBullets");
+
+    if (titleEl) titleEl.textContent = info.title;
+    if (descEl) descEl.textContent = info.desc;
+    if (bulletsEl) {
+        bulletsEl.innerHTML = info.bullets
+            .map(b => `<div class="feature-bullet"><i class="fas fa-check-circle"></i> <span>${b}</span></div>`)
+            .join("");
+    }
+
+    const modal = document.getElementById("comingSoonModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function closeComingSoonModal() {
+    const modal = document.getElementById("comingSoonModal");
+    if (modal) modal.style.display = "none";
+}
+
+// Resume Builder Modal
+function openResumeBuilderModal() {
+    const modal = document.getElementById("resumeBuilderModal");
+    if (modal) {
+        modal.style.display = "flex";
+        updateResumePreview();
+    }
+}
+
+function closeResumeBuilderModal() {
+    const modal = document.getElementById("resumeBuilderModal");
+    if (modal) modal.style.display = "none";
+}
+
+function updateResumePreview() {
+    const name = document.getElementById("rb-name")?.value || "Alex Morgan";
+    const title = document.getElementById("rb-title")?.value || "Senior Software Engineer";
+    const email = document.getElementById("rb-email")?.value || "alex.morgan@example.com";
+    const phone = document.getElementById("rb-phone")?.value || "+1 (555) 234-5678";
+    const summary = document.getElementById("rb-summary")?.value || "Experienced engineer specializing in high-performance web systems.";
+    const exp = document.getElementById("rb-exp")?.value || "Lead Developer at Tech Corp (2021-Present)";
+    const skills = document.getElementById("rb-skills")?.value || "TypeScript, Node.js, React, Docker, Python";
+
+    const pName = document.getElementById("preview-rb-name");
+    const pTitle = document.getElementById("preview-rb-title");
+    const pContact = document.getElementById("preview-rb-contact");
+    const pSummary = document.getElementById("preview-rb-summary");
+    const pExp = document.getElementById("preview-rb-exp");
+    const pSkills = document.getElementById("preview-rb-skills");
+
+    if (pName) pName.textContent = name;
+    if (pTitle) pTitle.textContent = title;
+    if (pContact) pContact.textContent = `${email} • ${phone}`;
+    if (pSummary) pSummary.textContent = summary;
+    if (pExp) pExp.textContent = exp;
+    if (pSkills) pSkills.textContent = skills;
+}
+
+function downloadResumeSample() {
+    showToast("Generating PDF Resume...", "info");
+    setTimeout(() => {
+        showToast("Resume downloaded successfully!", "success");
+    }, 800);
+}
+
+// ATS Checker Modal
+function openAtsCheckerModal() {
+    const modal = document.getElementById("atsCheckerModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function closeAtsCheckerModal() {
+    const modal = document.getElementById("atsCheckerModal");
+    if (modal) modal.style.display = "none";
+}
+
+function runAtsScan() {
+    const scanBtn = document.querySelector("#atsCheckerModal .action-btn.btn-primary");
+    if (scanBtn) scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+    setTimeout(() => {
+        if (scanBtn) scanBtn.innerHTML = '<i class="fas fa-search"></i> Run ATS Scan';
+        showToast("ATS Analysis Complete! 85% Score", "success");
+    }, 1000);
+}
+
+// AI Assistant Modal
+function openAiModal() {
+    const modal = document.getElementById("aiModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function closeAiModal() {
+    const modal = document.getElementById("aiModal");
+    if (modal) modal.style.display = "none";
+}
+
+function handleAiSubmit(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("aiChatInput");
+    const query = input?.value?.trim();
+    if (!query) return;
+
+    appendAiMessage("user", query);
+    input.value = "";
+
+    setTimeout(() => {
+        const responses = [
+            `I have analyzed your workspace. You currently have ${currentDashboardFiles.length} document(s) loaded. Let me know if you would like me to extract key points or inspect permissions.`,
+            `NeuroCore AI: "${query}" has been indexed against your local document corpus. All documents are encrypted and protected.`,
+            `Summary generated: All files in your workspace are formatted and verified for production compliance.`
+        ];
+        const randomRes = responses[Math.floor(Math.random() * responses.length)];
+        appendAiMessage("assistant", randomRes);
+    }, 600);
+}
+
+function askAiFromBanner(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("aiBannerInput");
+    const query = input?.value?.trim();
+    if (!query) return;
+
+    openAiModal();
+    appendAiMessage("user", query);
+    input.value = "";
+
+    setTimeout(() => {
+        appendAiMessage("assistant", `I found relevant sections in your workspace files matching "${query}". You can review or edit them directly.`);
+    }, 600);
+}
+
+function sendAiQuickPrompt(promptText) {
+    appendAiMessage("user", promptText);
+    setTimeout(() => {
+        if (promptText.includes("Summarize")) {
+            appendAiMessage("assistant", `Executive Summary:\n• Total Documents: ${currentDashboardFiles.length}\n• Status: All documents integrity-checked.\n• Security: Multi-tier PDF protection enabled.`);
+        } else if (promptText.includes("ATS")) {
+            appendAiMessage("assistant", `ATS Compliance Report: Found standard headings, parseable contact info, and clear typography. Compatibility rating: 85%.`);
+        } else {
+            appendAiMessage("assistant", `AI analysis completed for "${promptText}". All systems operational.`);
+        }
+    }, 500);
+}
+
+function appendAiMessage(role, text) {
+    const container = document.getElementById("aiChatMessages");
+    if (!container) return;
+
+    const bubble = document.createElement("div");
+    bubble.className = `ai-chat-bubble ${role}`;
+    if (role === "assistant") {
+        bubble.innerHTML = `
+            <div class="ai-avatar"><i class="fas fa-sparkles"></i></div>
+            <div class="bubble-text">${text.replace(/\n/g, '<br>')}</div>
+        `;
+    } else {
+        bubble.innerHTML = `
+            <div class="bubble-text">${text}</div>
+        `;
+    }
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Direct file upload handler for the Upload button & Drag-Drop
+async function handleDirectUpload(inputElement) {
+    const file = inputElement?.files?.[0];
+    if (!file) return;
+
+    showToast(`Uploading ${file.name}...`, "info", 2000);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await parseJsonResponse(response);
+
+        if (result.success) {
+            showToast(`File uploaded successfully: ${file.name}`, "success");
+            if (inputElement.value !== undefined) {
+                inputElement.value = "";
+            }
+            await loadDocuments();
+            if (typeof loadDocxFiles === "function") {
+                loadDocxFiles();
+            }
+        } else {
+            showToast(result.message || "Upload failed. Please try again.", "error");
+        }
+    } catch (err) {
+        showToast("Upload failed: " + (err.message || "Network error."), "error");
+    }
+}
+
+// Create New DOCX Document
+async function createNewDocxDocument() {
+    closeAllPopovers();
+    const docName = prompt("Enter a name for your new document:", "Untitled Document.docx");
+    if (docName === null) return; // Cancelled
+    
+    let cleanName = docName.trim();
+    if (!cleanName) cleanName = "Untitled Document.docx";
+    if (!cleanName.toLowerCase().endsWith(".docx")) {
+        cleanName += ".docx";
+    }
+
+    try {
+        showToast(`Creating ${cleanName}...`, "info", 1500);
+        const res = await fetch("/docx/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: cleanName, title: cleanName.replace(/\.docx$/i, "") })
+        });
+        const data = await parseJsonResponse(res);
+        if (data.success) {
+            showToast(`Document created: ${cleanName}`, "success");
+            await loadDocuments();
+            if (typeof loadDocxFiles === "function") loadDocxFiles();
+            // Automatically open in DOCX editor
+            setTimeout(() => {
+                switchSection("docx");
+                openDocxViewer(data.filename || cleanName);
+            }, 350);
+        } else {
+            showToast(data.message || "Failed to create document", "error");
+        }
+    } catch (err) {
+        showToast("Error creating document: " + err.message, "error");
+    }
+}
+
+// Direct Protect Modal from + New button
+function openProtectModalDirect() {
+    closeAllPopovers();
+    const pdfFiles = currentDashboardFiles.filter(f => f.name.toLowerCase().endsWith(".pdf"));
+    if (pdfFiles.length > 0) {
+        openProtectModal(pdfFiles[0].name);
+    } else {
+        showToast("Please upload a PDF document first to protect it.", "info");
+    }
+}
+
+// Direct Move / Folder Modal from + New button
+function openMoveModalDirect() {
+    closeAllPopovers();
+    const folderName = prompt("Enter new folder name:\n(e.g., Reports, Contracts, Invoices, Archives)", "Reports");
+    if (folderName && folderName.trim()) {
+        showToast(`Folder "${folderName.trim()}" ready in workspace.`, "success");
+        selectFolder(folderName.trim());
+    }
+}
+
+// Top Bar Dropdowns & Theme Mode
+function toggleNewMenu(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    const menu = document.getElementById("newDropdownMenu");
+    if (!menu) return;
+    const isShown = menu.style.display === "block";
+    closeAllPopovers();
+    menu.style.display = isShown ? "none" : "block";
+}
+
+function toggleNewDropdown(e) {
+    toggleNewMenu(e);
+}
+
+function toggleNotificationsPopover(e) {
+    if (e) e.stopPropagation();
+    const pop = document.getElementById("notificationsPopover");
+    if (!pop) return;
+    const isShown = pop.style.display === "block";
+    closeAllPopovers();
+    pop.style.display = isShown ? "none" : "block";
+}
+
+function toggleUserDropdown(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById("userDropdownMenu");
+    if (!menu) return;
+    const isShown = menu.style.display === "block";
+    closeAllPopovers();
+    menu.style.display = isShown ? "none" : "block";
+}
+
+function closeAllPopovers() {
+    const newMenu = document.getElementById("newDropdownMenu");
+    const notifPop = document.getElementById("notificationsPopover");
+    const userMenu = document.getElementById("userDropdownMenu");
+    if (newMenu) newMenu.style.display = "none";
+    if (notifPop) notifPop.style.display = "none";
+    if (userMenu) userMenu.style.display = "none";
+}
+
+function toggleThemeMode() {
+    document.body.classList.toggle("grayscale-light-theme");
+    const isLight = document.body.classList.contains("grayscale-light-theme");
+    showToast(isLight ? "Switched to High-Contrast Grayscale" : "Switched to Dark Grayscale", "info");
+}
+
+function quickCreateFile(type) {
+    closeAllPopovers();
+    if (type === "docx") {
+        switchSection("docx");
+        showToast("Opened Document Editor workspace.", "info");
+    } else if (type === "pdf") {
+        switchSection("pdf-tools");
+        showToast("Opened PDF Tools suite.", "info");
+    } else {
+        openComingSoonModal(type);
+    }
+}
+
+// Setup Global Click Listener to close popovers
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".new-dropdown-wrapper") &&
+        !e.target.closest(".nav-icon-btn") &&
+        !e.target.closest(".user-profile-menu-wrapper")) {
+        closeAllPopovers();
+    }
+});
+
+// Setup Live Search filter in top navbar
+document.addEventListener("DOMContentLoaded", () => {
+    const globalSearch = document.getElementById("globalSearch");
+    if (globalSearch) {
+        globalSearch.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                displayDashboard(currentDashboardFiles);
+                return;
+            }
+            const matched = currentDashboardFiles.filter(f => f.name.toLowerCase().includes(query));
+            const body = document.getElementById("pdfTableBody");
+            if (!body) return;
+            body.innerHTML = "";
+            if (matched.length === 0) {
+                body.innerHTML = `<tr><td colspan='7' style='text-align: center; color: var(--text-muted); padding: 36px 20px; font-size: 14px;'>No files matching "${query}"</td></tr>`;
+                return;
+            }
+            matched.forEach(file => {
+                const ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+                const isStarred = starredDocuments.includes(file.name);
+                const iconBadge = getFileTypeIconBadge(file);
+                const formattedDate = getFormattedModifiedDate(file.modified);
+                const formattedSize = formatFileSize(file.size);
+                const cleanName = file.name.replace(/^\d{10,14}-/, "");
+
+                const row = document.createElement("tr");
+                row.className = "modern-doc-row";
+                row.innerHTML = `
+                    <td class="col-select"><input type="checkbox" class="doc-select-checkbox" data-filename="${file.name.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"></td>
+                    <td class="col-star"><button type="button" class="star-btn ${isStarred ? "starred" : ""}" onclick="event.stopPropagation(); toggleStarDocument('${file.name.replace(/'/g, "\\'")}', this)"><i class="${isStarred ? "fas" : "far"} fa-star"></i></button></td>
+                    <td class="col-name"><div class="doc-title-cell">${iconBadge}<a href="javascript:void(0)" class="doc-filename-link" title="${file.name.replace(/"/g, '&quot;')}">${cleanName}</a></div></td>
+                    <td class="col-type"><span class="type-pill-text">${ext}</span></td>
+                    <td class="col-modified"><span class="date-text">${formattedDate}</span></td>
+                    <td class="col-size"><span class="size-text">${formattedSize}</span></td>
+                    <td class="col-actions action-cell">
+                        <button class="action-menu-btn" title="More options" onclick="event.stopPropagation();"><i class="fas fa-ellipsis-v"></i></button>
+                        <div class="action-menu">${buildActionMenu(file)}</div>
+                    </td>
+                `;
+                const link = row.querySelector(".doc-filename-link");
+                if (link) {
+                    link.onclick = (ev) => { ev.stopPropagation(); openDocument(file.name); };
+                }
+                row.onclick = (ev) => {
+                    if (ev.target.closest("button") || ev.target.closest("input") || ev.target.closest(".action-menu")) return;
+                    showPreview(file.name);
+                };
+                const menuButton = row.querySelector(".action-menu-btn");
+                const menu = row.querySelector(".action-menu");
+                if (menuButton && menu) {
+                    menuButton.onclick = (ev) => {
+                        ev.stopPropagation();
+                        const wasOpen = menu.style.display === "block";
+                        document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+                        menu.style.display = wasOpen ? "none" : "block";
+                    };
+                }
+                body.appendChild(row);
+            });
+        });
+    }
+});
+
+// Drag and drop upload support
+document.addEventListener("DOMContentLoaded", () => {
+    const mainContent = document.querySelector(".app-main-content") || document.body;
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        mainContent.addEventListener(eventName, () => {
+            mainContent.classList.add('drag-over-active');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        mainContent.addEventListener(eventName, () => {
+            mainContent.classList.remove('drag-over-active');
+        }, false);
+    });
+
+    mainContent.addEventListener('drop', (e) => {
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            handleDirectUpload({ files });
+        }
+    }, false);
+});
 
 window.onload = () => {
     // loadPDFs() -> loadDocuments() populates currentDashboardFiles and

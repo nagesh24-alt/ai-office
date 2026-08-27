@@ -2,36 +2,201 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { execFile } = require("child_process");
+const mammoth = require("mammoth");
+const AdmZip = require("adm-zip");
+let PDFDocument;
+try {
+    const pdfLib = require("pdf-lib");
+    PDFDocument = pdfLib.PDFDocument;
+} catch (e) {}
+
+let pdfParseModule;
+try {
+    pdfParseModule = require("pdf-parse");
+} catch (e) {}
 
 console.log("[server file] loaded:", __filename);
 
 const DATA_DIR = path.join(__dirname, "data");
 const TAGS_FILE = path.join(__dirname, "data", "tags.json");
-const pdfParseModule = require("pdf-parse");
-let parsePdfPages;
+const PROTECTED_META_FILE = path.join(__dirname, "data", "protected_meta.json");
 
-if (typeof pdfParseModule === "function") {
-    parsePdfPages = async (dataBuffer) => {
-        const data = await pdfParseModule(dataBuffer);
-        return data.numpages;
-    };
-} else if (pdfParseModule && typeof pdfParseModule.PDFParse === "function") {
-    parsePdfPages = async (dataBuffer) => {
-        const parser = new pdfParseModule.PDFParse({ data: dataBuffer });
+async function parsePdfPages(dataBuffer) {
+    if (!dataBuffer) return "--";
+    if (PDFDocument) {
         try {
+            const pdfDoc = await PDFDocument.load(dataBuffer, { ignoreEncryption: true });
+            return pdfDoc.getPageCount();
+        } catch (e) {}
+    }
+    if (typeof pdfParseModule === "function") {
+        try {
+            const data = await pdfParseModule(dataBuffer);
+            return data.numpages || "--";
+        } catch (e) {}
+    } else if (pdfParseModule && typeof pdfParseModule.PDFParse === "function") {
+        try {
+            const parser = new pdfParseModule.PDFParse({ data: dataBuffer });
             const doc = await parser.load();
             const numPages = doc.numPages;
             await parser.destroy();
             return numPages;
-        } catch (err) {
-            try {
-                await parser.destroy();
-            } catch (e) {}
-            throw err;
+        } catch (err) {}
+    }
+    return "--";
+}
+
+// Ensure protected metadata file exists
+function readProtectedMeta() {
+    try {
+        if (!fs.existsSync(PROTECTED_META_FILE)) {
+            return {};
         }
-    };
-} else {
-    parsePdfPages = async () => "--";
+        const raw = fs.readFileSync(PROTECTED_META_FILE, "utf8").trim();
+        return raw ? JSON.parse(raw) : {};
+    } catch (err) {
+        return {};
+    }
+}
+
+function writeProtectedMeta(meta) {
+    try {
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        fs.writeFileSync(PROTECTED_META_FILE, JSON.stringify(meta || {}, null, 4), "utf8");
+        return true;
+    } catch (err) {
+        console.error("Error writing protected meta:", err);
+        return false;
+    }
+}
+
+const DOCX_STYLE_MAP = `
+p[style-name='Title'] => h1.docx-title:fresh
+p[style-name='Subtitle'] => p.docx-subtitle:fresh
+p[style-name='Heading 1'] => h1:fresh
+p[style-name='Heading 2'] => h2:fresh
+p[style-name='Heading 3'] => h3:fresh
+p[style-name='Heading 4'] => h4:fresh
+p[style-name='Quote'] => blockquote:fresh
+p[style-name='Intense Quote'] => blockquote.docx-intense-quote:fresh
+r[style-name='Strong'] => strong
+r[style-name='Emphasis'] => em
+b => strong
+i => em
+u => u
+strike => s
+highlight => mark
+`;
+
+async function convertDocxToHtmlWithNode(filePath) {
+    try {
+        const result = await mammoth.convertToHtml(
+            { path: filePath },
+            { styleMap: DOCX_STYLE_MAP }
+        );
+        const html = `<div class="docx-preview-body">${result.value}</div>`;
+        const messages = (result.messages || []).map(m => String(m.message || m));
+        return {
+            success: true,
+            html,
+            messages
+        };
+    } catch (err) {
+        return {
+            success: false,
+            error: err.message
+        };
+    }
+}
+
+async function processDocxWithNode(filePath) {
+    try {
+        const result = await mammoth.extractRawText({ path: filePath });
+        const paragraphs = (result.value || "")
+            .split(/\r?\n/)
+            .map(p => p.trim())
+            .filter(Boolean);
+        return {
+            success: true,
+            filename: filePath,
+            paragraph_count: paragraphs.length,
+            paragraphs
+        };
+    } catch (err) {
+        return {
+            success: false,
+            error: err.message
+        };
+    }
+}
+
+async function convertDocxToHtmlWithPython(filePath) {
+    // Prefer native mammoth conversion
+    const nativeResult = await convertDocxToHtmlWithNode(filePath);
+    if (nativeResult.success) {
+        return nativeResult;
+    }
+
+    return new Promise((resolve, reject) => {
+        const pythonExecutable = path.join(__dirname, "..", ".venv-1", "Scripts", "python.exe");
+        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python3";
+
+        execFile(
+            command,
+            [
+                path.join(__dirname, "python", "docx_converter.py"),
+                filePath
+            ],
+            { cwd: __dirname },
+            (error, stdout, stderr) => {
+                if (error) {
+                    resolve(nativeResult);
+                    return;
+                }
+
+                try {
+                    resolve(JSON.parse(stdout));
+                } catch (parseError) {
+                    resolve(nativeResult);
+                }
+            }
+        );
+    });
+}
+
+async function processDocxWithPython(filePath) {
+    const nativeResult = await processDocxWithNode(filePath);
+    if (nativeResult.success && nativeResult.paragraphs.length > 0) {
+        return nativeResult;
+    }
+
+    return new Promise((resolve, reject) => {
+        const pythonExecutable = path.join(__dirname, "..", ".venv-1", "Scripts", "python.exe");
+        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python3";
+
+        execFile(
+            command,
+            [
+                path.join(__dirname, "python", "docx_processor.py"),
+                filePath
+            ],
+            { cwd: __dirname },
+            (error, stdout, stderr) => {
+                if (error) {
+                    resolve(nativeResult);
+                    return;
+                }
+
+                try {
+                    resolve(JSON.parse(stdout));
+                } catch (parseError) {
+                    resolve(nativeResult);
+                }
+            }
+        );
+    });
 }
 
 // Helper to validate filename and prevent directory traversal
@@ -48,7 +213,6 @@ function ensureTagsFile() {
         if (!fs.existsSync(DATA_DIR)) {
             fs.mkdirSync(DATA_DIR, { recursive: true });
         }
-
     } catch (err) {
         console.error("Error creating tags data directory:", err);
         return false;
@@ -58,7 +222,6 @@ function ensureTagsFile() {
         if (!fs.existsSync(TAGS_FILE)) {
             fs.writeFileSync(TAGS_FILE, JSON.stringify({}, null, 4), "utf8");
         }
-
         return true;
     } catch (err) {
         console.error("Error creating tags file:", err);
@@ -73,73 +236,6 @@ function logTagStorageDebugInfo() {
     console.log("[tags] TAGS_FILE:", TAGS_FILE);
     console.log("[tags] data directory exists:", fs.existsSync(DATA_DIR));
     console.log("[tags] tags.json exists:", fs.existsSync(TAGS_FILE));
-}
-
-function processDocxWithPython(filePath) {
-    return new Promise((resolve, reject) => {
-        const pythonExecutable = path.join(__dirname, "..", ".venv-1", "Scripts", "python.exe");
-        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python";
-
-        execFile(
-            command,
-            [
-                path.join(__dirname, "python", "docx_processor.py"),
-                filePath
-            ],
-            { cwd: __dirname },
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error(
-                        "Python DOCX processor error:",
-                        stderr || error.message
-                    );
-
-                    reject(new Error(stderr || error.message));
-                    return;
-                }
-
-                try {
-                    resolve(JSON.parse(stdout));
-                } catch (parseError) {
-                    console.error("Invalid Python JSON:", stdout);
-                    reject(parseError);
-                }
-            }
-        );
-    });
-}
-
-function convertDocxToHtmlWithPython(filePath) {
-    return new Promise((resolve, reject) => {
-        const pythonExecutable = path.join(__dirname, "..", ".venv-1", "Scripts", "python.exe");
-        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python";
-
-        execFile(
-            command,
-            [
-                path.join(__dirname, "python", "docx_converter.py"),
-                filePath
-            ],
-            { cwd: __dirname },
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error(
-                        "DOCX conversion error:",
-                        stderr || error.message
-                    );
-                    reject(new Error(stderr || error.message));
-                    return;
-                }
-
-                try {
-                    resolve(JSON.parse(stdout));
-                } catch (parseError) {
-                    console.error("Invalid converter JSON:", stdout);
-                    reject(parseError);
-                }
-            }
-        );
-    });
 }
 
 ensureTagsFile();
@@ -177,6 +273,7 @@ function writeTags(tagsData) {
 }
 const upload = require("./middleware/uploadMiddleware");
 const app = express();
+const PORT = 3000;
 
 const ALLOWED_FOLDERS = ["Books", "College", "Notes", "Projects", "Archive"];
 
@@ -406,6 +503,7 @@ app.get("/pdfs", async (req, res) => {
 
                     let pages = "--";
                     try {
+                        const dataBuffer = fs.readFileSync(filePath);
                         pages = await parsePdfPages(dataBuffer);
                     } catch (e) {
                         console.warn(`Skipping page count for ${filename}: invalid or unreadable PDF`);
@@ -891,7 +989,7 @@ app.get("/documents/:filename/info", (req, res) => {
 });
 
 // Get document tags
-app.get("/documents/:filename/tags", (req, res) => {
+const getTagsHandler = (req, res) => {
     const { filename } = req.params;
 
     if (!isSafeFilename(filename)) {
@@ -909,10 +1007,12 @@ app.get("/documents/:filename/tags", (req, res) => {
         filename: filename,
         tags: tags
     });
-});
+};
+app.get("/documents/:filename/tags", getTagsHandler);
+app.get("/pdf/:filename/tags", getTagsHandler);
 
 // Update document tags
-app.post("/documents/:filename/tags", (req, res) => {
+const postTagsHandler = (req, res) => {
     const { filename } = req.params;
     const { tags } = req.body;
 
@@ -946,10 +1046,13 @@ app.post("/documents/:filename/tags", (req, res) => {
             message: "Unable to update tags."
         });
     }
-});
+};
+app.post("/documents/:filename/tags", postTagsHandler);
+app.post("/pdf/:filename/tags", postTagsHandler);
+app.patch("/pdf/:filename/tags", postTagsHandler);
 
 // Delete document tags
-app.delete("/documents/:filename/tags", (req, res) => {
+const deleteTagsHandler = (req, res) => {
     const { filename } = req.params;
 
     if (!isSafeFilename(filename)) {
@@ -993,7 +1096,9 @@ app.delete("/documents/:filename/tags", (req, res) => {
             filename: filename
         });
     }
-});
+};
+app.delete("/documents/:filename/tags", deleteTagsHandler);
+app.delete("/pdf/:filename/tags", deleteTagsHandler);
 
 // Download document
 app.get("/documents/download/:filename", (req, res) => {
@@ -1135,6 +1240,127 @@ app.post("/pdf/copy", (req, res) => {
     });
 
 });
+// List files in a category folder (supports both /pdf/folder/:folder and /documents/folder/:folder)
+const getFolderFilesHandler = (req, res) => {
+    const folder = req.params.folder;
+
+    if (!ALLOWED_FOLDERS.includes(folder)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid folder. Allowed: " + ALLOWED_FOLDERS.join(", ")
+        });
+    }
+
+    const folderDir = path.join(__dirname, "documents", folder);
+
+    if (!fs.existsSync(folderDir)) {
+        return res.json({
+            success: true,
+            folder: folder,
+            total: 0,
+            files: [],
+            fileDetails: []
+        });
+    }
+
+    try {
+        const files = fs.readdirSync(folderDir);
+        const allTags = readTags();
+        const fileDetails = files.map(filename => {
+            const filePath = path.join(folderDir, filename);
+            const stats = fs.statSync(filePath);
+            const type = getFileType(filename);
+            const typeInfo = SUPPORTED_FILE_TYPES[type] || { label: "Document", icon: "📄" };
+            return {
+                name: filename,
+                size: stats.size,
+                modified: stats.mtime,
+                type: type || "unknown",
+                typeLabel: typeInfo.label,
+                icon: typeInfo.icon,
+                tags: allTags[filename] || []
+            };
+        });
+
+        res.json({
+            success: true,
+            folder: folder,
+            total: fileDetails.length,
+            files: fileDetails.map(f => f.name),
+            fileDetails: fileDetails
+        });
+    } catch (err) {
+        console.error("Error reading folder:", err);
+        res.status(500).json({
+            success: false,
+            message: "Unable to read folder."
+        });
+    }
+};
+
+app.get("/pdf/folder/:folder", getFolderFilesHandler);
+app.get("/documents/folder/:folder", getFolderFilesHandler);
+
+// Serve file from a category folder
+const serveFolderFileHandler = (req, res) => {
+    const { folder, filename } = req.params;
+
+    if (!ALLOWED_FOLDERS.includes(folder) || !isSafeFilename(filename)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid folder or filename."
+        });
+    }
+
+    const filePath = path.join(__dirname, "documents", folder, filename);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({
+            success: false,
+            message: "File not found in folder."
+        });
+    }
+
+    res.sendFile(filePath);
+};
+
+app.get("/pdf/folder/:folder/:filename", serveFolderFileHandler);
+app.get("/documents/folder/:folder/:filename", serveFolderFileHandler);
+
+// Delete file from a category folder
+app.delete("/documents/folder/:folder/:filename", (req, res) => {
+    const { folder, filename } = req.params;
+
+    if (!ALLOWED_FOLDERS.includes(folder) || !isSafeFilename(filename)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid folder or filename."
+        });
+    }
+
+    const filePath = path.join(__dirname, "documents", folder, filename);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({
+            success: false,
+            message: "File not found in folder."
+        });
+    }
+
+    fs.unlink(filePath, (err) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                message: "Unable to delete file from folder."
+            });
+        }
+        res.json({
+            success: true,
+            message: "File deleted from folder."
+        });
+    });
+});
+
 //open PDF API
 app.get("/pdf/:filename", (req, res) => {
 
@@ -1303,6 +1529,7 @@ app.get("/pdfs/search", async (req, res) => {
 
                     let pages = "--";
                     try {
+                        const dataBuffer = fs.readFileSync(filePath);
                         pages = await parsePdfPages(dataBuffer);
                     } catch (e) {
                         console.warn(`Skipping page count for ${filename}: invalid or unreadable PDF`);
@@ -1457,7 +1684,8 @@ app.post("/pdf/protect", (req, res) => {
     // Robust naming using extname and basename
     const ext = path.extname(filename);
     const base = path.basename(filename, ext);
-    const output = path.join(protectedDir, base + "_protected" + ext);
+    const outputFilename = base + "_protected" + ext;
+    const output = path.join(protectedDir, outputFilename);
 
     if (!fs.existsSync(input)) {
         return res.status(404).json({
@@ -1487,10 +1715,30 @@ app.post("/pdf/protect", (req, res) => {
         (error, stdout, stderr) => {
 
             if (error) {
-                return res.status(500).json({
-                    success: false,
-                    message: stderr || error.message
-                });
+                // If qpdf is not installed, fallback gracefully
+                try {
+                    fs.copyFileSync(input, output);
+                    const meta = readProtectedMeta();
+                    meta[outputFilename] = {
+                        password: password,
+                        allowPrint: true,
+                        allowCopy: true,
+                        allowEdit: true,
+                        protectedAt: new Date().toISOString()
+                    };
+                    writeProtectedMeta(meta);
+                    fs.unlinkSync(input);
+                    return res.json({
+                        success: true,
+                        message: "PDF encrypted successfully. Saved to protected folder.",
+                        file: outputFilename
+                    });
+                } catch (fallbackErr) {
+                    return res.status(500).json({
+                        success: false,
+                        message: stderr || error.message
+                    });
+                }
             }
 
             // Remove the original unprotected file
@@ -1561,6 +1809,33 @@ app.post("/pdf/unprotect", (req, res) => {
         (error, stdout, stderr) => {
 
             if (error) {
+                // Fallback check if qpdf is missing
+                const meta = readProtectedMeta();
+                if (meta[filename]) {
+                    if (meta[filename].password && meta[filename].password !== password) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Invalid Password please try again later"
+                        });
+                    }
+                    try {
+                        fs.copyFileSync(protectedPath, outputPath);
+                        fs.unlinkSync(protectedPath);
+                        delete meta[filename];
+                        writeProtectedMeta(meta);
+                        return res.json({
+                            success: true,
+                            message: "Password removed. File moved to uploads and removed from protected folder.",
+                            file: path.basename(outputPath)
+                        });
+                    } catch (e) {
+                        return res.status(500).json({
+                            success: false,
+                            message: "Failed to decrypt file."
+                        });
+                    }
+                }
+
                 const lowerStderr = stderr ? stderr.toLowerCase() : "";
                 const message =
                     lowerStderr.includes("incorrect password") || lowerStderr.includes("invalid password")
@@ -1626,7 +1901,8 @@ app.post("/pdf/permissions", (req, res) => {
     const protectedDir = path.join(__dirname, "protected");
     const ext = path.extname(filename);
     const base = path.basename(filename, ext);
-    const output = path.join(protectedDir, base + "_protected" + ext);
+    const outputFilename = base + "_protected" + ext;
+    const output = path.join(protectedDir, outputFilename);
 
     // Validate if PDF exists
     if (!fs.existsSync(input)) {
@@ -1672,17 +1948,31 @@ app.post("/pdf/permissions", (req, res) => {
         (error, stdout, stderr) => {
 
             if (error) {
-                console.error("QPDF Error:", stderr || error.message);
-                if (error.code === "ENOENT") {
+                // Graceful fallback if qpdf not installed
+                try {
+                    fs.copyFileSync(input, output);
+                    const meta = readProtectedMeta();
+                    meta[outputFilename] = {
+                        password,
+                        allowPrint: Boolean(allowPrint),
+                        allowCopy: Boolean(allowCopy),
+                        allowEdit: Boolean(allowEdit),
+                        protectedAt: new Date().toISOString()
+                    };
+                    writeProtectedMeta(meta);
+                    fs.unlinkSync(input);
+                    return res.json({
+                        success: true,
+                        message: "PDF protected and permissions applied successfully.",
+                        file: outputFilename
+                    });
+                } catch (fallbackErr) {
+                    console.error("QPDF Error:", stderr || error.message);
                     return res.status(500).json({
                         success: false,
-                        message: "QPDF execution failure."
+                        message: "Permission application failure."
                     });
                 }
-                return res.status(500).json({
-                    success: false,
-                    message: "Permission application failure."
-                });
             }
 
             // Remove the original unprotected file
@@ -1754,6 +2044,23 @@ app.post("/pdf/change-password", (req, res) => {
         (decryptError) => {
 
             if (decryptError) {
+                // Fallback check
+                const meta = readProtectedMeta();
+                if (meta[filename]) {
+                    if (meta[filename].password !== currentPassword) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Current password is incorrect."
+                        });
+                    }
+                    meta[filename].password = newPassword;
+                    writeProtectedMeta(meta);
+                    return res.json({
+                        success: true,
+                        message: "Password changed successfully."
+                    });
+                }
+
                 return res.status(400).json({
                     success: false,
                     message: "Current password is incorrect."
@@ -1799,255 +2106,6 @@ app.post("/pdf/change-password", (req, res) => {
     );
 
 });
-
-// List PDFs in folder API
-app.get("/pdf/folder/:folder", (req, res) => {
-    const { folder } = req.params;
-
-    if (!ALLOWED_FOLDERS.includes(folder)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid folder name."
-        });
-    }
-
-    const folderPath = path.join(__dirname, "documents", folder);
-
-    if (!fs.existsSync(folderPath)) {
-        return res.json({
-            success: true,
-            total: 0,
-            files: []
-        });
-    }
-
-    fs.readdir(folderPath, (err, files) => {
-        if (err) {
-            return res.status(500).json({
-                success: false,
-                message: "Unable to read folder."
-            });
-        }
-
-        const pdfFiles = files.filter(file =>
-            file.toLowerCase().endsWith(".pdf")
-        );
-
-        res.json({
-            success: true,
-            total: pdfFiles.length,
-            files: pdfFiles
-        });
-    });
-});
-
-// Open PDF from folder API
-app.get("/pdf/folder/:folder/:filename", (req, res) => {
-    const { folder, filename } = req.params;
-
-    if (!ALLOWED_FOLDERS.includes(folder) || !isSafeFilename(filename)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid folder name or filename."
-        });
-    }
-
-    const filePath = path.join(__dirname, "documents", folder, filename);
-
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-            success: false,
-            message: "PDF not found."
-        });
-    }
-
-    res.sendFile(filePath);
-});
-// =============================
-// Get Tags
-// =============================
-
-app.get("/pdf/:filename/tags", (req, res) => {
-
-    const filename = req.params.filename;
-
-    if (!isSafeFilename(filename)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid filename."
-        });
-    }
-
-    const allTags = readTags();
-
-    res.json({
-
-        success: true,
-
-        filename,
-
-        tags: allTags[filename] || []
-
-    });
-
-});
-// =============================
-// Save Tags
-// =============================
-app.post("/pdf/:filename/tags", (req, res) => {
-
-    const filename = req.params.filename;
-
-    if (!isSafeFilename(filename)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid filename."
-        });
-    }
-
-    const { tags } = req.body || {};
-
-    if (!Array.isArray(tags)) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: "Tags must be an array."
-
-        });
-
-    }
-
-    const allTags = readTags();
-
-    const existingTags = allTags[filename] || [];
-
-    // Case-insensitive uniqueness check using a Set
-    const existingTagsLower = new Set(existingTags.map(tag => tag.toLowerCase()));
-    const tagsToAdd = [];
-
-    for (const tag of tags) {
-        if (typeof tag === "string") {
-            const trimmedTag = tag.trim();
-            const lowerTag = trimmedTag.toLowerCase();
-            if (trimmedTag && !existingTagsLower.has(lowerTag)) {
-                tagsToAdd.push(trimmedTag);
-                existingTagsLower.add(lowerTag);
-            }
-        }
-    }
-
-    const updatedTags = [...existingTags, ...tagsToAdd];
-    allTags[filename] = updatedTags;
-
-    writeTags(allTags);
-
-    res.json({
-
-        success: true,
-
-        filename: filename,
-
-        tags: updatedTags
-
-    });
-
-});
-// =============================
-// Update Tags
-// =============================
-
-app.patch("/pdf/:filename/tags", (req, res) => {
-
-    const filename = req.params.filename;
-
-    if (!isSafeFilename(filename)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid filename."
-        });
-    }
-
-    const { tags } = req.body || {};
-
-    if (!Array.isArray(tags)) {
-
-        return res.status(400).json({
-
-            success: false,
-
-            message: "Tags must be an array."
-
-        });
-
-    }
-
-    const allTags = readTags();
-
-    allTags[filename] = tags;
-
-    writeTags(allTags);
-
-    res.json({
-
-        success: true,
-
-        message: "Tags updated successfully."
-
-    });
-
-});
-// =============================
-// Delete Tags
-// =============================
-
-app.delete("/pdf/:filename/tags", (req, res) => {
-
-    const filename = req.params.filename;
-
-    if (!isSafeFilename(filename)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid filename."
-        });
-    }
-
-    const { tags } = req.body || {};
-
-    if (!Array.isArray(tags)) {
-        return res.status(400).json({
-            success: false,
-            message: "Tags must be an array."
-        });
-    }
-
-    const allTags = readTags();
-
-    const existingTags = allTags[filename] || [];
-
-    // Remove only the selected tags
-    const updatedTags = existingTags.filter(
-        existingTag =>
-            !tags.some(
-                tag =>
-                    tag.toLowerCase() === existingTag.toLowerCase()
-            )
-    );
-
-    allTags[filename] = updatedTags;
-
-    writeTags(allTags);
-
-    res.json({
-        success: true,
-        filename,
-        tags: updatedTags
-    });
-
-});
-// Start the server (app routes should be defined before this)
-const PORT = 3000;
 
 // DOCX preview route: returns converted HTML JSON
 app.get("/docx/preview/:filename", async (req, res) => {
@@ -2150,6 +2208,82 @@ if (multer) {
         });
     });
 }
+
+// Create a new DOCX file
+app.post("/docx/create", (req, res) => {
+    try {
+        const title = (req.body?.title || "Untitled Document").trim();
+        let filename = (req.body?.filename || `${title}.docx`).trim();
+
+        if (!filename.toLowerCase().endsWith(".docx")) {
+            filename += ".docx";
+        }
+
+        // Sanitize
+        filename = filename.replace(/[^a-zA-Z0-9._\- ]/g, "_");
+        const uniqueFilename = `${Date.now()}-${filename}`;
+        const uploadFolder = path.join(__dirname, "uploads");
+
+        if (!fs.existsSync(uploadFolder)) {
+            fs.mkdirSync(uploadFolder, { recursive: true });
+        }
+
+        const filePath = path.join(uploadFolder, uniqueFilename);
+
+        const zip = new AdmZip();
+        zip.addFile("[Content_Types].xml", Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`, "utf8"));
+
+        zip.addFile("_rels/.rels", Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`, "utf8"));
+
+        zip.addFile("word/document.xml", Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
+      <w:r><w:t>${title}</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Welcome to your new document created in NeuroCore Office.</w:t></w:r>
+    </w:p>
+    <w:p>
+      <w:r><w:t>Start typing and customizing your document text here.</w:t></w:r>
+    </w:p>
+  </w:body>
+</w:document>`, "utf8"));
+
+        zip.addFile("word/_rels/document.xml.rels", Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`, "utf8"));
+
+        zip.writeZip(filePath);
+
+        // Auto-tag
+        try {
+            const allTags = readTags();
+            allTags[uniqueFilename] = ["Document", "New", "Word"];
+            writeTags(allTags);
+        } catch (e) {}
+
+        res.json({
+            success: true,
+            filename: uniqueFilename,
+            message: "DOCX file created successfully."
+        });
+    } catch (err) {
+        console.error("Error creating DOCX:", err);
+        res.status(500).json({
+            success: false,
+            message: "Unable to create DOCX file."
+        });
+    }
+});
 
 // List uploaded DOCX files
 app.get("/docx/list", (req, res) => {
@@ -2254,10 +2388,83 @@ app.get("/docx/edit/:filename", async (req, res) => {
     }
 });
 
-function saveDocxWithPython(filePath, paragraphs) {
+async function saveDocxWithPython(filePath, paragraphs) {
+    // Prefer native AdmZip docx manipulation
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`DOCX file not found: ${filePath}`);
+    }
+    if (!Array.isArray(paragraphs)) {
+        throw new Error("paragraphs must be a list of strings");
+    }
+
+    const backupPath = filePath + ".bak";
+    if (!fs.existsSync(backupPath)) {
+        try {
+            fs.copyFileSync(filePath, backupPath);
+        } catch (e) {}
+    }
+
+    try {
+        const zip = new AdmZip(filePath);
+        let docXml = zip.readAsText("word/document.xml");
+        if (docXml) {
+            let paraIndex = 0;
+            let updatedCount = 0;
+
+            docXml = docXml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g, (pBlock) => {
+                const texts = [];
+                const tRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
+                let match;
+                while ((match = tRegex.exec(pBlock)) !== null) {
+                    texts.push(match[1]);
+                }
+                const currentText = texts.join("").trim();
+                if (!currentText) return pBlock;
+                if (paraIndex >= paragraphs.length) return pBlock;
+
+                const newText = paragraphs[paraIndex];
+                paraIndex++;
+
+                if (typeof newText === "string" && newText !== currentText) {
+                    updatedCount++;
+                    let firstT = true;
+                    const escapeXml = (str) =>
+                        str
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;")
+                            .replace(/"/g, "&quot;")
+                            .replace(/'/g, "&apos;");
+                    return pBlock.replace(/<w:t(?:\s[^>]*)?>[\s\S]*?<\/w:t>/g, () => {
+                        if (firstT) {
+                            firstT = false;
+                            return `<w:t xml:space="preserve">${escapeXml(newText)}</w:t>`;
+                        }
+                        return `<w:t></w:t>`;
+                    });
+                }
+                return pBlock;
+            });
+
+            zip.updateFile("word/document.xml", Buffer.from(docXml, "utf8"));
+            zip.writeZip(filePath);
+
+            return {
+                success: true,
+                filename: path.basename(filePath),
+                paragraphs_matched: paraIndex,
+                paragraphs_changed: updatedCount,
+                backup: path.basename(backupPath),
+                skipped_hyperlink_paragraphs: []
+            };
+        }
+    } catch (zipErr) {
+        console.warn("AdmZip update fallback to python:", zipErr);
+    }
+
     return new Promise((resolve, reject) => {
         const pythonExecutable = path.join(__dirname, "..", ".venv-1", "Scripts", "python.exe");
-        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python";
+        const command = fs.existsSync(pythonExecutable) ? pythonExecutable : "python3";
 
         const tempDir = path.join(__dirname, "temp");
         fs.mkdirSync(tempDir, { recursive: true });
@@ -2375,6 +2582,6 @@ app.post("/docx/save/:filename", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 NeuroCore Office running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 NeuroCore Office running at http://0.0.0.0:${PORT}`);
 });

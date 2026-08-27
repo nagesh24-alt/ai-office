@@ -1,13 +1,27 @@
+const path = require("path");
+const fs = require("fs");
 const multer = require("multer");
 const pdfValidation = require("./validationMiddleware");
 
+const uploadDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
-    destination: "uploads/",
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
+        const safeOriginalName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._\- ()]/g, "_");
+        cb(null, `${Date.now()}-${safeOriginalName}`);
     }
 });
 
-const upload = multer({ storage,fileFilter: pdfValidation });
+const upload = multer({
+    storage,
+    fileFilter: pdfValidation,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 module.exports = upload;
