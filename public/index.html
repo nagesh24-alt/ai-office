@@ -133,8 +133,12 @@
                     <div class="sidebar-section">
                         <div class="sidebar-group-title">TOOLS</div>
                         <nav class="sidebar-nav">
-                            <button class="nav-item" id="nav-pdf-tools" onclick="openPdfToolsHub()">
+                            <button class="nav-item" id="nav-pdf" onclick="openPdfSection()">
                                 <i class="far fa-file-pdf"></i>
+                                <span>PDF Documents</span>
+                            </button>
+                            <button class="nav-item" id="nav-pdf-tools" onclick="openPdfToolsHub()">
+                                <i class="fas fa-tools"></i>
                                 <span>PDF Tools</span>
                             </button>
                             <button class="nav-item" id="nav-document-editor" onclick="openDocxEditorNav()">
@@ -241,13 +245,13 @@
                             <div class="cat-stat-label">Files in total</div>
                         </div>
 
-                        <div class="cat-stat-card" onclick="filterByNavType('pdf')">
+                        <div class="cat-stat-card" id="cat-card-pdf" onclick="openPdfSection()">
                             <div class="cat-card-header">
                                 <div class="cat-icon-box cat-pdf-icon">
                                     <span class="cat-badge-txt">PDF</span>
                                 </div>
                                 <span class="cat-title">PDF</span>
-                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('pdf')"><i class="fas fa-ellipsis-v"></i></button>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); openPdfSection()"><i class="fas fa-ellipsis-v"></i></button>
                             </div>
                             <div class="cat-stat-number" id="stat-pdf-count">328</div>
                             <div class="cat-stat-label">PDF Documents</div>
@@ -522,6 +526,403 @@
                         </div>
                     </div>
 
+                </section>
+
+                <!-- Dedicated PDF Documents Section -->
+                <section id="pdf-section" class="content-section">
+                    <input type="file" id="pdfSectionFileInput" accept=".pdf" style="display: none;" onchange="handlePdfSectionFileUpload(event)">
+                    
+                    <!-- Top Page Header -->
+                    <div class="pdf-page-header">
+                        <div class="pdf-page-title-group">
+                            <div class="pdf-page-main-icon">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="pdf-page-title-text">
+                                <h2>PDF Documents</h2>
+                                <p>View, organize and manage your PDF files.</p>
+                            </div>
+                        </div>
+                        <div class="pdf-page-header-actions">
+                            <button type="button" class="btn-pdf-header-upload" onclick="triggerPdfDirectUpload()">
+                                <i class="fas fa-arrow-up"></i> Upload PDF
+                            </button>
+                            <button type="button" class="btn-pdf-header-folder" onclick="openPdfNewFolderModal()">
+                                <i class="far fa-folder"></i> New Folder
+                            </button>
+                            <div class="pdf-more-menu-wrapper" style="position: relative;">
+                                <button type="button" class="btn-pdf-header-more" onclick="togglePdfHeaderMoreMenu(event)" title="More options">
+                                    <i class="fas fa-ellipsis-v"></i> More
+                                </button>
+                                <div class="pdf-more-dropdown" id="pdfHeaderMoreDropdown" style="display: none;">
+                                    <button onclick="refreshPdfSection()"><i class="fas fa-sync-alt"></i> Refresh List</button>
+                                    <button onclick="selectAllPdfRows(true)"><i class="fas fa-check-double"></i> Select All</button>
+                                    <button onclick="openProtectModalDirect()"><i class="fas fa-shield-alt"></i> Protect a PDF</button>
+                                    <button onclick="openAiAssistantModal()"><i class="fas fa-sparkles"></i> AI Summarizer</button>
+                                    <button onclick="exportPdfMetadata()"><i class="fas fa-file-export"></i> Export PDF List</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Filter Tabs -->
+                    <div class="pdf-nav-tabs">
+                        <button type="button" class="pdf-nav-tab active" data-tab="all" onclick="switchPdfTab('all')">All PDFs</button>
+                        <button type="button" class="pdf-nav-tab" data-tab="recent" onclick="switchPdfTab('recent')">Recent</button>
+                        <button type="button" class="pdf-nav-tab" data-tab="starred" onclick="switchPdfTab('starred')">Starred</button>
+                        <button type="button" class="pdf-nav-tab" data-tab="shared" onclick="switchPdfTab('shared')">Shared</button>
+                        <button type="button" class="pdf-nav-tab" data-tab="folders" onclick="switchPdfTab('folders')">Folders</button>
+                    </div>
+
+                    <!-- 5 Metric Stat Cards -->
+                    <div class="pdf-metrics-row">
+                        <div class="pdf-metric-card">
+                            <div class="pdf-metric-top">
+                                <div class="pdf-metric-icon"><i class="far fa-file-alt"></i></div>
+                                <span class="pdf-metric-title">Total PDFs</span>
+                            </div>
+                            <div class="pdf-metric-value" id="pdf-stat-total-count">328</div>
+                            <div class="pdf-metric-subtext">Files</div>
+                        </div>
+                        <div class="pdf-metric-card">
+                            <div class="pdf-metric-top">
+                                <div class="pdf-metric-icon"><i class="far fa-clock"></i></div>
+                                <span class="pdf-metric-title">Total Size</span>
+                            </div>
+                            <div class="pdf-metric-value" id="pdf-stat-total-size">2.45 GB</div>
+                            <div class="pdf-metric-subtext">Storage Used</div>
+                        </div>
+                        <div class="pdf-metric-card">
+                            <div class="pdf-metric-top">
+                                <div class="pdf-metric-icon"><i class="far fa-calendar-alt"></i></div>
+                                <span class="pdf-metric-title">This Month</span>
+                            </div>
+                            <div class="pdf-metric-value" id="pdf-stat-month-count">28</div>
+                            <div class="pdf-metric-subtext">Added</div>
+                        </div>
+                        <div class="pdf-metric-card">
+                            <div class="pdf-metric-top">
+                                <div class="pdf-metric-icon"><i class="fas fa-compress-arrows-alt"></i></div>
+                                <span class="pdf-metric-title">Compressed</span>
+                            </div>
+                            <div class="pdf-metric-value" id="pdf-stat-compressed-size">1.12 GB</div>
+                            <div class="pdf-metric-subtext">Space Saved</div>
+                        </div>
+                        <div class="pdf-metric-card">
+                            <div class="pdf-metric-top">
+                                <div class="pdf-metric-icon"><i class="fas fa-lock"></i></div>
+                                <span class="pdf-metric-title">Encrypted</span>
+                            </div>
+                            <div class="pdf-metric-value" id="pdf-stat-encrypted-count">16</div>
+                            <div class="pdf-metric-subtext">Files</div>
+                        </div>
+                    </div>
+
+                    <!-- Main Grid Area: Table on Left + Filter Sidebar on Right -->
+                    <div class="pdf-main-layout">
+                        
+                        <!-- Left Main Column -->
+                        <div class="pdf-main-left-col">
+                            
+                            <!-- PDF Table Card Container -->
+                            <div class="pdf-table-card">
+                                
+                                <!-- Toolbar -->
+                                <div class="pdf-table-toolbar">
+                                    <div class="pdf-toolbar-left">
+                                        <label class="pdf-checkbox-custom">
+                                            <input type="checkbox" id="pdfMasterSelectAll" onchange="toggleSelectAllPdfRows(this.checked)">
+                                            <span class="pdf-checkmark"></span>
+                                        </label>
+                                        <span class="pdf-selected-count-label" id="pdfSelectionCount">0 selected</span>
+                                        
+                                        <div class="pdf-bulk-actions">
+                                            <button type="button" class="pdf-bulk-btn" id="pdfBulkPreview" onclick="bulkActionPdf('preview')" title="Preview document">
+                                                <i class="far fa-eye"></i> Preview
+                                            </button>
+                                            <button type="button" class="pdf-bulk-btn" id="pdfBulkShare" onclick="bulkActionPdf('share')" title="Share document">
+                                                <i class="fas fa-share-alt"></i> Share
+                                            </button>
+                                            <button type="button" class="pdf-bulk-btn" id="pdfBulkDownload" onclick="bulkActionPdf('download')" title="Download document">
+                                                <i class="fas fa-download"></i> Download
+                                            </button>
+                                            <button type="button" class="pdf-bulk-btn" id="pdfBulkMove" onclick="bulkActionPdf('move')" title="Move to folder">
+                                                <i class="far fa-folder"></i> Move
+                                            </button>
+                                            <button type="button" class="pdf-bulk-btn" id="pdfBulkDelete" onclick="bulkActionPdf('delete')" title="Delete document">
+                                                <i class="far fa-trash-alt"></i> Delete
+                                            </button>
+                                            <div class="pdf-bulk-more-wrap" style="position: relative; display: inline-block;">
+                                                <button type="button" class="pdf-bulk-btn" onclick="togglePdfBulkMoreMenu(event)" title="More bulk actions">
+                                                    <i class="fas fa-ellipsis-v"></i> More
+                                                </button>
+                                                <div class="pdf-more-dropdown" id="pdfBulkMoreDropdown" style="display: none;">
+                                                    <button onclick="bulkActionPdf('protect')"><i class="fas fa-lock"></i> Protect Selected</button>
+                                                    <button onclick="bulkActionPdf('tag')"><i class="fas fa-tag"></i> Add Tags</button>
+                                                    <button onclick="bulkActionPdf('star')"><i class="fas fa-star"></i> Star / Unstar</button>
+                                                    <button onclick="bulkActionPdf('summarize')"><i class="fas fa-sparkles"></i> AI Summarize</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="pdf-toolbar-right">
+                                        <div class="pdf-sort-select-wrapper">
+                                            <span class="pdf-sort-label">Sort by:</span>
+                                            <select id="pdfSortBySelect" onchange="handlePdfSortChange(this.value)">
+                                                <option value="modified-desc" selected>Modified (Newest)</option>
+                                                <option value="modified-asc">Modified (Oldest)</option>
+                                                <option value="name-asc">Name (A-Z)</option>
+                                                <option value="name-desc">Name (Z-A)</option>
+                                                <option value="size-desc">Size (Largest)</option>
+                                                <option value="size-asc">Size (Smallest)</option>
+                                            </select>
+                                        </div>
+                                        <div class="pdf-view-toggle-btns">
+                                            <button type="button" class="pdf-view-btn active" id="pdfViewListBtn" onclick="togglePdfViewMode('list')" title="List view">
+                                                <i class="fas fa-bars"></i>
+                                            </button>
+                                            <button type="button" class="pdf-view-btn" id="pdfViewGridBtn" onclick="togglePdfViewMode('grid')" title="Grid view">
+                                                <i class="fas fa-th-large"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- PDF Data Table -->
+                                <div class="pdf-table-responsive-wrapper">
+                                    <table class="pdf-custom-data-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="th-cb"></th>
+                                                <th class="th-name">Name</th>
+                                                <th class="th-size">Size</th>
+                                                <th class="th-pages">Pages</th>
+                                                <th class="th-modified" onclick="togglePdfSortByModified()" style="cursor: pointer;">
+                                                    Modified <i class="fas fa-sort"></i>
+                                                </th>
+                                                <th class="th-addedby">Added by</th>
+                                                <th class="th-tags">Tags</th>
+                                                <th class="th-actions">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pdfMainTableBody">
+                                            <!-- Dynamic PDF rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Pagination Footer -->
+                                <div class="pdf-pagination-footer">
+                                    <div class="pdf-pagination-info" id="pdfPaginationInfo">
+                                        Showing 1 to 10 of 328 results
+                                    </div>
+                                    <div class="pdf-pagination-controls" id="pdfPaginationPages">
+                                        <!-- Dynamic page buttons -->
+                                    </div>
+                                    <div class="pdf-per-page-wrap">
+                                        <select id="pdfPerPageSelect" onchange="handlePdfPerPageChange(this.value)">
+                                            <option value="10" selected>10 / page</option>
+                                            <option value="25">25 / page</option>
+                                            <option value="50">50 / page</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Potential / Advanced Features Bottom Card -->
+                            <div class="pdf-advanced-features-card">
+                                <div class="pdf-advanced-header">
+                                    <h3>Potential / Advanced Features (Coming Soon)</h3>
+                                </div>
+                                <div class="pdf-advanced-grid">
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('AI Summarize')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-sparkles"></i></div>
+                                        <div class="pdf-adv-title">AI Summarize</div>
+                                        <div class="pdf-adv-desc">Summarize PDF content</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('PDF to DOCX')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-file-word"></i></div>
+                                        <div class="pdf-adv-title">PDF to DOCX</div>
+                                        <div class="pdf-adv-desc">Convert PDF to DOCX</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('OCR Extract')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-crop-alt"></i></div>
+                                        <div class="pdf-adv-title">OCR Extract</div>
+                                        <div class="pdf-adv-desc">Extract text from scans</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('Compare PDFs')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-columns"></i></div>
+                                        <div class="pdf-adv-title">Compare PDFs</div>
+                                        <div class="pdf-adv-desc">Compare two files</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('Redact PDF')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-user-secret"></i></div>
+                                        <div class="pdf-adv-title">Redact PDF</div>
+                                        <div class="pdf-adv-desc">Remove sensitive info</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('eSign PDF')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-signature"></i></div>
+                                        <div class="pdf-adv-title">eSign PDF</div>
+                                        <div class="pdf-adv-desc">Sign documents</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('Version History')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-history"></i></div>
+                                        <div class="pdf-adv-title">Version History</div>
+                                        <div class="pdf-adv-desc">Track file versions</div>
+                                    </div>
+                                    <div class="pdf-adv-tool-item" onclick="openPdfAdvTool('Collaboration')">
+                                        <div class="pdf-adv-icon"><i class="fas fa-users"></i></div>
+                                        <div class="pdf-adv-title">Collaboration</div>
+                                        <div class="pdf-adv-desc">Real-time comments</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Right Sidebar Column (Search, Filters, Insights, Usage) -->
+                        <div class="pdf-main-right-col">
+                            
+                            <!-- Search in PDFs Card -->
+                            <div class="pdf-search-box-card">
+                                <label class="pdf-sidebar-title">Search in PDFs</label>
+                                <div class="pdf-search-input-wrap">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="pdfSidebarSearchInput" placeholder="Search file name, content, tags..." oninput="handlePdfSidebarSearch(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- Filters Card -->
+                            <div class="pdf-filter-panel-card">
+                                <div class="pdf-filter-card-header">
+                                    <span class="pdf-sidebar-title">Filters</span>
+                                    <button type="button" class="pdf-reset-link-btn" onclick="resetPdfSidebarFilters()">Reset</button>
+                                </div>
+
+                                <div class="pdf-filter-field">
+                                    <label>Tags</label>
+                                    <select id="pdfFilterTagSelect" onchange="applyPdfSidebarFilters()">
+                                        <option value="">Select tags</option>
+                                        <option value="proposal">proposal</option>
+                                        <option value="market">market</option>
+                                        <option value="research">research</option>
+                                        <option value="manual">manual</option>
+                                        <option value="policy">policy</option>
+                                        <option value="finance">finance</option>
+                                        <option value="product">product</option>
+                                        <option value="training">training</option>
+                                        <option value="invoice">invoice</option>
+                                        <option value="legal">legal</option>
+                                        <option value="meeting">meeting</option>
+                                    </select>
+                                </div>
+
+                                <div class="pdf-filter-field">
+                                    <label>Added By</label>
+                                    <select id="pdfFilterUserSelect" onchange="applyPdfSidebarFilters()">
+                                        <option value="">Select user</option>
+                                        <option value="You">You</option>
+                                        <option value="Team">Team</option>
+                                        <option value="HR Team">HR Team</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Legal Team">Legal Team</option>
+                                        <option value="L&D Team">L&D Team</option>
+                                    </select>
+                                </div>
+
+                                <div class="pdf-filter-field">
+                                    <label>Date Range</label>
+                                    <div class="pdf-select-with-icon">
+                                        <select id="pdfFilterDateSelect" onchange="applyPdfSidebarFilters()">
+                                            <option value="">Select date range</option>
+                                            <option value="today">Today</option>
+                                            <option value="this-week">This Week</option>
+                                            <option value="this-month">This Month</option>
+                                            <option value="this-year">This Year</option>
+                                            <option value="older">Older</option>
+                                        </select>
+                                        <i class="far fa-calendar-alt"></i>
+                                    </div>
+                                </div>
+
+                                <div class="pdf-filter-field">
+                                    <label>File Size</label>
+                                    <select id="pdfFilterSizeSelect" onchange="applyPdfSidebarFilters()">
+                                        <option value="">Any size</option>
+                                        <option value="small">&lt; 1 MB</option>
+                                        <option value="medium">1 - 5 MB</option>
+                                        <option value="large">5 - 10 MB</option>
+                                        <option value="huge">&gt; 10 MB</option>
+                                    </select>
+                                </div>
+
+                                <div class="pdf-filter-field">
+                                    <label>Security</label>
+                                    <select id="pdfFilterSecuritySelect" onchange="applyPdfSidebarFilters()">
+                                        <option value="">Any</option>
+                                        <option value="encrypted">Encrypted</option>
+                                        <option value="unencrypted">Unencrypted</option>
+                                    </select>
+                                </div>
+
+                                <div class="pdf-filter-btn-group">
+                                    <button type="button" class="pdf-apply-filter-btn" onclick="applyPdfSidebarFilters()">Apply Filters</button>
+                                    <button type="button" class="pdf-clear-filter-btn" onclick="resetPdfSidebarFilters()">Clear</button>
+                                </div>
+                            </div>
+
+                            <!-- PDF Insights Card -->
+                            <div class="pdf-insights-card">
+                                <div class="pdf-sidebar-title">PDF Insights</div>
+                                <div class="pdf-insight-list">
+                                    <div class="pdf-insight-row">
+                                        <div class="pdf-insight-item-left">
+                                            <i class="far fa-file-alt"></i>
+                                            <span>Scanned PDFs</span>
+                                        </div>
+                                        <span class="pdf-insight-count" id="insightScannedCount">48</span>
+                                    </div>
+                                    <div class="pdf-insight-row">
+                                        <div class="pdf-insight-item-left">
+                                            <i class="fas fa-crop"></i>
+                                            <span>Image Based (OCR)</span>
+                                        </div>
+                                        <span class="pdf-insight-count" id="insightOcrCount">22</span>
+                                    </div>
+                                    <div class="pdf-insight-row">
+                                        <div class="pdf-insight-item-left">
+                                            <i class="fas fa-lock"></i>
+                                            <span>Encrypted PDFs</span>
+                                        </div>
+                                        <span class="pdf-insight-count" id="insightEncryptedCount">16</span>
+                                    </div>
+                                    <div class="pdf-insight-row">
+                                        <div class="pdf-insight-item-left">
+                                            <i class="far fa-folder"></i>
+                                            <span>Large Files (&gt;10MB)</span>
+                                        </div>
+                                        <span class="pdf-insight-count" id="insightLargeCount">35</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Current Plan Usage Card -->
+                            <div class="pdf-plan-usage-card">
+                                <div class="pdf-sidebar-title">Current Plan Usage</div>
+                                <div class="pdf-usage-row">
+                                    <span class="pdf-usage-label">PDF Tools Used</span>
+                                    <span class="pdf-usage-val" id="pdfPlanUsageVal">72 / 200</span>
+                                </div>
+                                <div class="pdf-usage-progress-bar">
+                                    <div class="pdf-usage-progress-fill" style="width: 36%;"></div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
                 </section>
 
                 <!-- PDF Tools Section -->
@@ -888,23 +1289,105 @@
         </div>
     </div>
 
-    <!-- Quick Preview Modal -->
-    <div id="preview-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content preview-modal-content">
-            <div class="modal-header">
-                <h2 id="previewModalTitle"><i class="fas fa-file-alt"></i> Document Preview</h2>
-                <button class="modal-close-btn" onclick="closePreviewModal()">&times;</button>
+    <!-- Quick Preview Modal with Find in Document -->
+    <div id="preview-modal" class="modal-overlay" style="display: none;" onclick="handlePreviewOverlayClick(event)">
+        <div class="modal-content preview-modal-content" onclick="event.stopPropagation()">
+            <!-- Top Header -->
+            <div class="modal-header preview-modal-header">
+                <div class="preview-header-left">
+                    <div class="preview-header-icon" id="previewHeaderIcon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div class="preview-header-titles">
+                        <h2 id="previewModalTitle">Document Preview</h2>
+                        <div class="preview-header-badges">
+                            <span class="preview-badge" id="previewDocPagesBadge">Loading...</span>
+                            <span class="preview-badge" id="previewDocSizeBadge">-- KB</span>
+                            <span class="preview-badge preview-badge-type" id="previewDocTypeBadge">PDF</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-header-actions">
+                    <button type="button" class="preview-hdr-btn" id="previewDownloadBtn" title="Download Document" onclick="downloadPreviewDocument()">
+                        <i class="fas fa-download"></i> <span>Download</span>
+                    </button>
+                    <button type="button" class="preview-hdr-btn" id="previewOpenExternalBtn" title="Open Full View in New Tab" onclick="openPreviewExternal()">
+                        <i class="fas fa-external-link-alt"></i> <span>Full View</span>
+                    </button>
+                    <button type="button" class="modal-close-btn preview-close-btn" title="Close (Esc)" onclick="closePreviewModal()">&times;</button>
+                </div>
             </div>
-            <div class="modal-body preview-modal-body">
+
+            <!-- Preview Toolbar: Find In Document & Navigation / Zoom Controls -->
+            <div class="preview-toolbar">
+                <!-- Left: Find in document search controls -->
+                <div class="preview-find-bar">
+                    <div class="preview-search-input-wrapper">
+                        <i class="fas fa-search preview-search-icon"></i>
+                        <input type="text" id="previewFindInput" placeholder="Find in document..." autocomplete="off" spellcheck="false" oninput="handlePreviewFindInput(this.value)" onkeydown="handlePreviewFindKeydown(event)">
+                        <button type="button" class="preview-search-clear-btn" id="previewFindClearBtn" title="Clear search (Esc)" onclick="clearPreviewFind()" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="preview-find-nav-group">
+                        <span id="previewFindCounter" class="preview-find-counter">0 / 0</span>
+                        <div class="preview-find-btns">
+                            <button type="button" class="preview-tool-btn" id="previewFindPrevBtn" title="Previous match (Shift+Enter)" onclick="navigatePreviewMatch(-1)" disabled>
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button type="button" class="preview-tool-btn" id="previewFindNextBtn" title="Next match (Enter)" onclick="navigatePreviewMatch(1)" disabled>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="preview-tool-btn preview-toggle-btn" id="previewCaseMatchBtn" title="Match Case" onclick="togglePreviewFindCaseMatch()">
+                            <span>Aa</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Page Indicator & Zoom Controls -->
+                <div class="preview-view-controls">
+                    <div class="preview-page-indicator">
+                        <span>Page</span>
+                        <input type="number" id="previewCurrentPageInput" min="1" value="1" onchange="jumpToPreviewPage(this.value)" onkeydown="if(event.key==='Enter') jumpToPreviewPage(this.value)">
+                        <span>of <span id="previewTotalPagesCount">1</span></span>
+                    </div>
+
+                    <div class="preview-zoom-group">
+                        <button type="button" class="preview-tool-btn" title="Zoom Out" onclick="adjustPreviewZoom(-0.15)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="preview-zoom-label" id="previewZoomLevel">100%</span>
+                        <button type="button" class="preview-tool-btn" title="Zoom In" onclick="adjustPreviewZoom(0.15)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button type="button" class="preview-tool-btn preview-fit-btn" title="Fit to width" onclick="fitPreviewZoomWidth()">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Body (Canvas & Highlight Layers) -->
+            <div class="modal-body preview-modal-body" id="previewModalBody">
                 <div id="previewModalContent" class="preview-inner-content">
                     <!-- Dynamic preview canvas or iframe -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="action-btn btn-secondary" onclick="closePreviewModal()">Close</button>
-                <button type="button" class="action-btn btn-primary" id="previewOpenDirectBtn">
-                    <i class="fas fa-external-link-alt"></i> Open Full View
-                </button>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer preview-modal-footer">
+                <div class="preview-footer-status" id="previewFooterStatus">
+                    <i class="fas fa-info-circle"></i> Use <strong>Ctrl+F</strong> to find in document. Press <strong>Enter</strong> or <strong>Shift+Enter</strong> to navigate matches.
+                </div>
+                <div class="preview-footer-actions">
+                    <button type="button" class="action-btn btn-secondary" onclick="closePreviewModal()">Close</button>
+                    <button type="button" class="action-btn btn-primary" id="previewOpenDirectBtn" onclick="openPreviewExternal()">
+                        <i class="fas fa-external-link-alt"></i> Open Full View
+                    </button>
+                </div>
             </div>
         </div>
     </div>
