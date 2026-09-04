@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCX Editor (Word) — NeuroCore Office</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #121214;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #e4e4e7;
+        }
+
+        .docx-editor-workspace {
+            width: 100vw;
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            margin: 0;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            background: #18181b;
+        }
+
+        .docx-workspace-main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            background: #202023;
+        }
+
+        .docx-center-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #28282c;
+            position: relative;
+        }
+
+        .docx-stage-viewport {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .docx-page-canvas-wrapper {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 36px 20px 80px 20px;
+            background: #28282c;
+        }
+
+        .docx-page-sheet {
+            background: #ffffff;
+            color: #18181b;
+            width: 100%;
+            max-width: 816px;
+            min-height: 1056px;
+            padding: 72px 84px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border-radius: 2px;
+            outline: none;
+            line-height: 1.6;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: transform 0.15s ease-out;
+        }
+
+        .docx-page-sheet:focus {
+            outline: none;
+        }
+
+        /* Document Typography in Sheet */
+        .docx-page-sheet h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #18181b;
+            margin: 22px 0 10px 0;
+            line-height: 1.25;
+        }
+
+        .docx-page-sheet h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #27272a;
+            margin: 18px 0 8px 0;
+            line-height: 1.3;
+        }
+
+        .docx-page-sheet h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #3f3f46;
+            margin: 14px 0 6px 0;
+            line-height: 1.35;
+        }
+
+        .docx-page-sheet p {
+            margin: 8px 0;
+            color: #18181b;
+            line-height: 1.6;
+        }
+
+        .docx-page-sheet ul, .docx-page-sheet ol {
+            margin: 8px 0;
+            padding-left: 24px;
+            color: #18181b;
+        }
+
+        .docx-page-sheet li {
+            margin-bottom: 4px;
+        }
+
+        .docx-page-sheet blockquote {
+            border-left: 3px solid #71717a;
+            background: #f4f4f5;
+            color: #3f3f46;
+            padding: 10px 16px;
+            margin: 14px 0;
+            font-style: italic;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .docx-page-sheet table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 14px 0;
+        }
+
+        .docx-page-sheet th, .docx-page-sheet td {
+            border: 1px solid #d4d4d8;
+            padding: 8px 12px;
+            color: #18181b;
+        }
+
+        .docx-page-sheet th {
+            background: #f4f4f5;
+            font-weight: 600;
+        }
+
+        /* Topbar Header */
+        .docx-ws-topbar {
+            background: #18181b;
+            border-bottom: 1px solid #27272a;
+            color: #f4f4f5;
+            padding: 6px 16px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            z-index: 30;
+            flex-wrap: nowrap;
+        }
+
+        .docx-ws-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .docx-ws-logo-pill {
+            width: 26px;
+            height: 26px;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .docx-ws-logo-pill:hover {
+            background: #3f3f46;
+        }
+
+        .docx-ws-brand-title {
+            color: #f4f4f5;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .docx-ws-doc-badge {
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            color: #e4e4e7;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .docx-ws-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .docx-ws-doc-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            max-width: 280px;
+            flex-shrink: 1;
+        }
+
+        .docx-ws-title-input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #f4f4f5;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            width: 100%;
+            min-width: 110px;
+            max-width: 220px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .docx-ws-title-input:hover, .docx-ws-title-input:focus {
+            background: #27272a;
+            border-color: #52525b;
+            outline: none;
+        }
+
+        .docx-ws-star-btn {
+            color: #71717a;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 13px;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .docx-ws-star-btn:hover, .docx-ws-star-btn.starred {
+            color: #e4e4e7;
+        }
+
+        .docx-ws-sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #a1a1aa;
+            flex-shrink: 0;
+        }
+
+        .docx-ws-sync-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            color: #d4d4d8;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .docx-ws-autosave-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            color: #d4d4d8;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .docx-ws-autosave-pill.saved {
+            color: #e4e4e7;
+            background: #27272a;
+            border-color: #52525b;
+        }
+
+        .docx-ws-autosave-pill.editing {
+            color: #f4f4f5;
+            background: #3f3f46;
+            border-color: #71717a;
+        }
+
+        .docx-ws-actions-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .docx-ws-icon-btn, .docx-ws-share-btn {
+            color: #e4e4e7;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        .docx-ws-icon-btn:hover {
+            background: #3f3f46;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-ws-share-btn {
+            background: #3f3f46;
+            border-color: #52525b;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .docx-ws-share-btn:hover {
+            background: #52525b;
+            border-color: #71717a;
+        }
+
+        /* Ribbon Tabs */
+        .docx-ws-ribbon-tabs {
+            background: #18181b;
+            border-bottom: 1px solid #27272a;
+            display: flex;
+            padding: 0 16px;
+            gap: 2px;
+        }
+
+        .docx-ribbon-tab {
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .docx-ribbon-tab:hover {
+            color: #f4f4f5;
+            background: #27272a;
+        }
+
+        .docx-ribbon-tab.active {
+            color: #ffffff;
+            border-bottom-color: #e4e4e7;
+            background: #27272a;
+        }
+
+        /* Ribbon Toolbar */
+        .docx-ws-ribbon-toolbar {
+            background: #202023;
+            border-bottom: 1px solid #2e2e32;
+            padding: 6px 16px;
+            min-height: 84px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            color: #e4e4e7;
+            overflow-x: auto;
+        }
+
+        .docx-ribbon-pane {
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .docx-ribbon-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0 10px;
+            border-right: 1px solid #2e2e32;
+        }
+
+        .docx-ribbon-group-content {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .docx-ribbon-group-title {
+            font-size: 10px;
+            color: #71717a;
+            text-align: center;
+            margin-top: 4px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .docx-ribbon-big-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #d4d4d8;
+            padding: 6px 8px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            min-width: 48px;
+            transition: all 0.15s;
+        }
+
+        .docx-ribbon-big-btn i {
+            font-size: 18px;
+            color: #d4d4d8;
+        }
+
+        .docx-ribbon-big-btn:hover {
+            background: #2e2e32;
+            border-color: #3f3f46;
+            color: #ffffff;
+        }
+
+        .docx-ribbon-big-btn:hover i {
+            color: #ffffff;
+        }
+
+        .docx-btn-tool {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #d4d4d8;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .docx-btn-tool:hover {
+            background: #2e2e32;
+            color: #ffffff;
+        }
+
+        .docx-btn-tool.active {
+            background: #3f3f46;
+            border-color: #52525b;
+            color: #ffffff;
+        }
+
+        .docx-font-select, .docx-size-select, .docx-insp-select {
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            color: #f4f4f5;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .docx-font-select:hover, .docx-size-select:hover, .docx-insp-select:hover {
+            border-color: #52525b;
+        }
+
+        .docx-style-pill {
+            background: #18181b;
+            color: #d4d4d8;
+            border: 1px solid #3f3f46;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .docx-style-pill:hover {
+            background: #27272a;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-style-pill.active {
+            background: #3f3f46;
+            color: #ffffff;
+            border-color: #71717a;
+            font-weight: 600;
+        }
+
+        /* Status Bar */
+        .docx-ws-statusbar {
+            background: #18181b;
+            border-top: 1px solid #27272a;
+            color: #a1a1aa;
+            padding: 4px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            z-index: 20;
+        }
+
+        .docx-status-left, .docx-status-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .docx-status-metric {
+            color: #d4d4d8;
+        }
+
+        .docx-status-divider {
+            width: 1px;
+            height: 12px;
+            background: #2e2e32;
+        }
+
+        .docx-status-track-btn {
+            background: transparent;
+            border: 1px solid #3f3f46;
+            color: #a1a1aa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .docx-status-track-btn.active {
+            color: #e4e4e7;
+            border-color: #52525b;
+            background: #27272a;
+        }
+
+        .docx-view-mode-btn, .docx-zoom-btn {
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            padding: 4px 6px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+
+        .docx-view-mode-btn.active, .docx-view-mode-btn:hover, .docx-zoom-btn:hover {
+            color: #ffffff;
+            background: #27272a;
+        }
+
+        .docx-zoom-slider {
+            width: 80px;
+            accent-color: #a1a1aa;
+            cursor: pointer;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast-message {
+            background: #18181b;
+            color: #f4f4f5;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast-success { border-left: 4px solid #a1a1aa; }
+        .toast-info { border-left: 4px solid #71717a; }
+        .toast-warning { border-left: 4px solid #d4d4d8; }
+        .toast-error { border-left: 4px solid #ef4444; }
+
+        @keyframes toastSlideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Outline & Inspector dark grayscale theme */
+        .docx-outline-panel, .docx-inspector-panel {
+            background: #18181b;
+            border-color: #27272a;
+            color: #d4d4d8;
+        }
+
+        .docx-outline-header {
+            border-bottom-color: #27272a;
+        }
+
+        .docx-outline-item {
+            color: #a1a1aa;
+            transition: all 0.15s;
+        }
+
+        .docx-outline-item:hover {
+            background: #27272a;
+            color: #ffffff;
+        }
+
+        .docx-outline-item.active {
+            background: #27272a;
+            color: #ffffff;
+            border-left: 3px solid #e4e4e7;
+        }
+
+        .docx-insp-tabs {
+            background: #141416;
+            border-bottom: 1px solid #27272a;
+            display: flex;
+        }
+
+        .docx-insp-tab {
+            flex: 1;
+            padding: 10px 8px;
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .docx-insp-tab:hover {
+            color: #f4f4f5;
+        }
+
+        .docx-insp-tab.active {
+            color: #ffffff;
+            border-bottom-color: #e4e4e7;
+            background: #18181b;
+        }
+
+        .docx-insp-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #e4e4e7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .docx-insp-tool-btn {
+            background: #222225;
+            border: 1px solid #334155;
+            color: #d4d4d8;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            transition: all 0.15s;
+        }
+
+        .docx-insp-tool-btn:hover {
+            background: #2e2e32;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-insp-tool-btn.active {
+            background: #3f3f46;
+            color: #ffffff;
+            border-color: #71717a;
+        }
+
+        .docx-insp-clear-btn, .docx-insp-page-setup-btn {
+            background: #222225;
+            border: 1px solid #334155;
+            color: #e4e4e7;
+            border-radius: 4px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .docx-insp-clear-btn:hover, .docx-insp-page-setup-btn:hover {
+            background: #2e2e32;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-ai-grid-btn {
+            background: #222225;
+            border: 1px solid #334155;
+            color: #d4d4d8;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .docx-ai-grid-btn:hover {
+            background: #3f3f46;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-style-card {
+            background: #222225;
+            border: 1px solid #334155;
+            color: #e4e4e7;
+            transition: all 0.15s;
+        }
+
+        .docx-style-card:hover {
+            background: #2e2e32;
+            border-color: #52525b;
+        }
+
+        .docx-style-card.active {
+            border-color: #a1a1aa;
+            background: #2e2e32;
+        }
+
+        .docx-ai-textarea {
+            background: #141416;
+            border: 1px solid #334155;
+            color: #f4f4f5;
+        }
+
+        .docx-ai-textarea:focus {
+            border-color: #52525b;
+            outline: none;
+        }
+
+        .docx-ai-send-btn {
+            background: #3f3f46;
+            border: 1px solid #52525b;
+            color: #ffffff;
+            transition: all 0.15s;
+        }
+
+        .docx-ai-send-btn:hover {
+            background: #52525b;
+        }
+
+        .docx-ai-chip {
+            background: #222225;
+            border: 1px solid #334155;
+            color: #a1a1aa;
+            transition: all 0.15s;
+        }
+
+        .docx-ai-chip:hover {
+            background: #2e2e32;
+            color: #ffffff;
+            border-color: #52525b;
+        }
+
+        .docx-ai-result-box {
+            background: #141416;
+            border: 1px solid #3f3f46;
+            color: #e4e4e7;
+        }
+
+        .docx-btn-insert-ai {
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            color: #ffffff;
+            transition: all 0.15s;
+        }
+
+        .docx-btn-insert-ai:hover {
+            background: #3f3f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="docx-editor-workspace">
+        <!-- Top Header / Title Bar -->
+        <div class="docx-ws-topbar">
+            <div class="docx-ws-brand-group">
+                <a href="/" class="docx-ws-logo-pill" title="NeuroCore Office — Back to Dashboard" style="text-decoration:none;">
+                    <span class="docx-ws-logo-n">N</span>
+                </a>
+                <div class="docx-ws-brand-title">NeuroCore Office</div>
+                <span class="docx-ws-doc-badge" style="background:#27272a; border:1px solid #3f3f46; color:#e4e4e7; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600;">DOCX Editor Workspace</span>
+            </div>
+
+            <div class="docx-ws-title-group" style="display:flex; align-items:center; gap:12px;">
+                <div class="docx-ws-doc-name-wrap" style="display:flex; align-items:center; gap:6px;">
+                    <input type="text" id="wordDocTitleInput" class="docx-ws-title-input" value="Project_Report.docx" title="Click to rename document" onchange="handleDocTitleRename(this.value)">
+                    <button type="button" class="docx-ws-star-btn" id="wordStarBtn" onclick="toggleWordDocStarred()" title="Star document">
+                        <i class="far fa-star" id="wordStarIcon"></i>
+                    </button>
+                </div>
+                <div class="docx-ws-sync-status">
+                    <span class="docx-ws-sync-pill"><i class="fas fa-check-circle" style="color:#a1a1aa;"></i> Python OpenXML Connected</span>
+                    <span class="docx-ws-autosave-pill saved" id="wordAutoSaveBadge"><i class="fas fa-check-circle"></i> <span id="docxAutosaveLabel">Ready</span></span>
+                </div>
+            </div>
+
+            <div class="docx-ws-actions-right" style="display:flex; align-items:center; gap:8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="saveWordDocument()" title="Save (Ctrl+S)">
+                    <i class="fas fa-save" style="color:#d4d4d8;"></i> Save
+                </button>
+                <button type="button" class="docx-ws-icon-btn" onclick="wordExecCmd('undo')" title="Undo (Ctrl+Z)">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button type="button" class="docx-ws-icon-btn" onclick="wordExecCmd('redo')" title="Redo (Ctrl+Y)">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button type="button" class="docx-ws-share-btn" onclick="openDocxShareModal()" title="Share Document">
+                    <i class="fas fa-user-plus"></i> Share
+                </button>
+                <a href="/" class="docx-ws-icon-btn" title="Back to Dashboard">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+                <button type="button" class="docx-ws-icon-btn" onclick="openDocxHelpModal()" title="Help & Shortcuts">
+                    <i class="far fa-question-circle"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ribbon Navigation Tabs Bar -->
+        <div class="docx-ws-ribbon-tabs">
+            <button type="button" class="docx-ribbon-tab" data-tab="file" onclick="switchWordRibbonTab('file')">File</button>
+            <button type="button" class="docx-ribbon-tab active" data-tab="home" onclick="switchWordRibbonTab('home')">Home</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="insert" onclick="switchWordRibbonTab('insert')">Insert</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="layout" onclick="switchWordRibbonTab('layout')">Layout</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="references" onclick="switchWordRibbonTab('references')">References</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="review" onclick="switchWordRibbonTab('review')">Review</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="python" onclick="switchWordRibbonTab('python')"><i class="fab fa-python" style="color: #d4d4d8;"></i> Python Engine</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="view" onclick="switchWordRibbonTab('view')">View</button>
+            <button type="button" class="docx-ribbon-tab" data-tab="help" onclick="switchWordRibbonTab('help')">Help</button>
+        </div>
+
+        <!-- Ribbon Toolbar Content -->
+        <div class="docx-ws-ribbon-toolbar">
+            <!-- HOME TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonHome" style="display: flex;">
+                <!-- Clipboard Group -->
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordPasteText()" title="Paste Content">
+                            <i class="far fa-clipboard"></i>
+                            <span>Paste</span>
+                        </button>
+                        <div class="docx-ribbon-stack-col" style="display:flex; flex-direction:column; gap:2px;">
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px;" onclick="wordCutSelection()" title="Cut (Ctrl+X)"><i class="fas fa-cut"></i> Cut</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px;" onclick="wordCopySelection()" title="Copy (Ctrl+C)"><i class="far fa-copy"></i> Copy</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px;" onclick="wordFormatPainter()" title="Format Painter"><i class="fas fa-paint-brush"></i> Style</button>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Clipboard</span>
+                </div>
+
+                <!-- Font Group -->
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <select class="docx-font-select" id="wordFontFamilySelect" onchange="wordApplyFontFamily(this.value)">
+                                    <option value="Inter" selected>Inter</option>
+                                    <option value="Calibri">Calibri</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Outfit">Outfit</option>
+                                    <option value="Courier New">Courier New</option>
+                                </select>
+                                <select class="docx-size-select" id="wordFontSizeSelect" onchange="wordApplyFontSize(this.value)">
+                                    <option value="1">8pt</option>
+                                    <option value="2">10pt</option>
+                                    <option value="3" selected>12pt</option>
+                                    <option value="4">14pt</option>
+                                    <option value="5">18pt</option>
+                                    <option value="6">24pt</option>
+                                    <option value="7">36pt</option>
+                                </select>
+                                <button type="button" class="docx-btn-tool" onclick="wordChangeFontSize(1)" title="Grow Font">A<sup>▲</sup></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordChangeFontSize(-1)" title="Shrink Font">A<sub>▼</sub></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordToggleCaseDropdown()" title="Change Case">Aa</button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <button type="button" class="docx-btn-tool" id="wordBtnBold" onclick="wordExecCmd('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnItalic" onclick="wordExecCmd('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnUnderline" onclick="wordExecCmd('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnStrike" onclick="wordExecCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('subscript')" title="Subscript">X<sub>2</sub></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('superscript')" title="Superscript">X<sup>2</sup></button>
+                                <label style="display:inline-flex; align-items:center; cursor:pointer;" title="Highlight Color">
+                                    <span style="font-size:12px; font-weight:bold; background:#ffff00; color:#000; padding:2px 4px; border-radius:3px; margin-right:2px;">H</span>
+                                    <input type="color" value="#ffff00" style="opacity:0; width:1px; height:1px; position:absolute;" onchange="wordApplyHighlight(this.value)">
+                                </label>
+                                <label style="display:inline-flex; align-items:center; cursor:pointer;" title="Font Color">
+                                    <span style="font-size:12px; font-weight:bold; color:#f87171; padding:2px 4px; border-bottom:2px solid #ef4444;">A</span>
+                                    <input type="color" value="#ef4444" style="opacity:0; width:1px; height:1px; position:absolute;" onchange="wordApplyFontColor(this.value)">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Font</span>
+                </div>
+
+                <!-- Paragraph Group -->
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('insertUnorderedList')" title="Bullet List"><i class="fas fa-list-ul"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('insertOrderedList')" title="Numbered List"><i class="fas fa-list-ol"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordInsertMultilevelList()" title="Multilevel List"><i class="fas fa-stream"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('outdent')" title="Decrease Indent"><i class="fas fa-outdent"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('indent')" title="Increase Indent"><i class="fas fa-indent"></i></button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <button type="button" class="docx-btn-tool active" id="wordBtnAlignLeft" onclick="wordExecCmd('justifyLeft')" title="Align Left"><i class="fas fa-align-left"></i></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnAlignCenter" onclick="wordExecCmd('justifyCenter')" title="Center"><i class="fas fa-align-center"></i></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnAlignRight" onclick="wordExecCmd('justifyRight')" title="Align Right"><i class="fas fa-align-right"></i></button>
+                                <button type="button" class="docx-btn-tool" id="wordBtnAlignJustify" onclick="wordExecCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordApplyLineSpacing('1.5')" title="Line Spacing (1.5)"><i class="fas fa-arrows-alt-v"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordInsertQuote()" title="Quote Block"><i class="fas fa-quote-left"></i></button>
+                                <button type="button" class="docx-btn-tool" onclick="wordInsertCallout()" title="Callout"><i class="fas fa-info-circle"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Paragraph</span>
+                </div>
+
+                <!-- Styles Group -->
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <div class="docx-styles-gallery" style="display:flex; gap:4px; align-items:center;">
+                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('p')" style="background:#27272a; color:#f4f4f5; border:1px solid #3f3f46; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer;">Normal</button>
+                            <button type="button" class="docx-style-pill active" onclick="wordApplyStyle('h1')" style="background:#3f3f46; color:#ffffff; border:1px solid #52525b; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; cursor:pointer;">Heading 1</button>
+                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('h2')" style="background:#27272a; color:#e4e4e7; border:1px solid #3f3f46; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">Heading 2</button>
+                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('h3')" style="background:#27272a; color:#d4d4d8; border:1px solid #3f3f46; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer;">Heading 3</button>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Styles</span>
+                </div>
+
+                <!-- Editing Group -->
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 8px; font-size:11px;" onclick="openWordFindReplaceModal('find')"><i class="fas fa-search"></i> Find</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 8px; font-size:11px;" onclick="openWordFindReplaceModal('replace')"><i class="fas fa-sync-alt"></i> Replace</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 8px; font-size:11px;" onclick="wordExecCmd('selectAll')"><i class="far fa-object-group"></i> Select All</button>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Editing</span>
+                </div>
+            </div>
+
+            <!-- FILE TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonFile" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordCreateNewBlankDoc()">
+                            <i class="far fa-file"></i>
+                            <span>New</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="saveWordDocument()">
+                            <i class="far fa-save"></i>
+                            <span>Save</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordExportDocx()">
+                            <i class="fas fa-download"></i>
+                            <span>Export .docx</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordExportPdf()">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export PDF</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="window.print()">
+                            <i class="fas fa-print"></i>
+                            <span>Print</span>
+                        </button>
+                        <a href="/" class="docx-ribbon-big-btn" style="text-decoration:none;">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+                    <span class="docx-ribbon-group-title">File Operations</span>
+                </div>
+            </div>
+
+            <!-- INSERT TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonInsert" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertTableDialog()">
+                            <i class="fas fa-table"></i>
+                            <span>Table</span>
+                        </button>
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px;" onclick="wordAddTableRow()"><i class="fas fa-plus"></i> Add Row</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px;" onclick="wordAddTableCol()"><i class="fas fa-plus"></i> Add Col</button>
+                            <button type="button" class="docx-btn-tool" style="width:auto; padding:0 6px; font-size:11px; color:#f87171;" onclick="wordDeleteTable()"><i class="fas fa-trash"></i> Del Table</button>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Tables</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordPromptInsertImage()">
+                            <i class="far fa-image"></i>
+                            <span>Picture</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertCallout()">
+                            <i class="far fa-comment-alt"></i>
+                            <span>Callout</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertHorizontalRule()">
+                            <i class="fas fa-minus"></i>
+                            <span>Divider</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Illustrations</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertDateTime()">
+                            <i class="far fa-calendar-check"></i>
+                            <span>Date/Time</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="openWordSymbolsModal()">
+                            <i class="fas fa-icons"></i>
+                            <span>Symbol</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Symbols</span>
+                </div>
+            </div>
+
+            <!-- LAYOUT TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonLayout" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="font-size: 11px; color: #94a3b8; min-width: 50px;">Margins:</label>
+                                <select class="docx-insp-select" onchange="wordApplyMargins(this.value)">
+                                    <option value="normal" selected>Normal (1")</option>
+                                    <option value="narrow">Narrow (0.5")</option>
+                                    <option value="wide">Wide</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="font-size: 11px; color: #94a3b8; min-width: 50px;">Size:</label>
+                                <select class="docx-insp-select" onchange="wordApplyPaperSize(this.value)">
+                                    <option value="a4" selected>A4 (8.27" x 11.69")</option>
+                                    <option value="letter">Letter (8.5" x 11")</option>
+                                    <option value="legal">Legal (8.5" x 14")</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="docx-ribbon-group-title">Page Setup</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetOrientation('portrait')">
+                            <i class="far fa-file"></i>
+                            <span>Portrait</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetOrientation('landscape')">
+                            <i class="far fa-file" style="transform: rotate(90deg);"></i>
+                            <span>Landscape</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Orientation</span>
+                </div>
+            </div>
+
+            <!-- REFERENCES TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonReferences" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertTableOfContents()">
+                            <i class="fas fa-list-ol"></i>
+                            <span>Table of Contents</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertFootnote()">
+                            <i class="fas fa-asterisk"></i>
+                            <span>Footnote</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertCitation()">
+                            <i class="fas fa-quote-right"></i>
+                            <span>Citation</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">References</span>
+                </div>
+            </div>
+
+            <!-- REVIEW TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonReview" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordRunSpellCheck()">
+                            <i class="fas fa-spell-check"></i>
+                            <span>Spelling Check</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordShowWordCountStats()">
+                            <i class="fas fa-calculator"></i>
+                            <span>Word Count</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleTrackChanges()">
+                            <i class="far fa-edit"></i>
+                            <span>Track Changes</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Proofing & Tracking</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="runDocxAiQuickAction('improve')">
+                            <i class="fas fa-magic"></i>
+                            <span>AI Polish</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="runDocxAiQuickAction('translate')">
+                            <i class="fas fa-language"></i>
+                            <span>Translate</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Language & AI</span>
+                </div>
+            </div>
+
+            <!-- PYTHON ENGINE TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonPython" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="openPythonRegexModal()">
+                            <i class="fab fa-python" style="color: #d4d4d8;"></i>
+                            <span>Regex Replace</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="openPythonPlaygroundModal()">
+                            <i class="fas fa-terminal" style="color: #d4d4d8;"></i>
+                            <span>Python Script</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="runPythonBeautify()">
+                            <i class="fas fa-wand-magic-sparkles" style="color: #d4d4d8;"></i>
+                            <span>XML Beautify</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Python Transformations</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="fetchPythonDocxStats()">
+                            <i class="fas fa-chart-pie" style="color: #d4d4d8;"></i>
+                            <span>Deep Stats</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="inspectDocumentOpenXml()">
+                            <i class="fas fa-code" style="color: #d4d4d8;"></i>
+                            <span>Inspect XML</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="runPythonAddHeaderNotice()">
+                            <i class="fas fa-heading" style="color: #d4d4d8;"></i>
+                            <span>Exec Header</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">OpenXML Inspection</span>
+                </div>
+            </div>
+
+            <!-- VIEW TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonView" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('print')">
+                            <i class="far fa-file"></i>
+                            <span>Print Layout</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('web')">
+                            <i class="fas fa-globe"></i>
+                            <span>Web Layout</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('read')">
+                            <i class="fas fa-book-open"></i>
+                            <span>Read Mode</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Views</span>
+                </div>
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleDocxOutlinePanel()">
+                            <i class="fas fa-bars-staggered"></i>
+                            <span>Outline Pane</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleWordRulers()">
+                            <i class="fas fa-ruler-combined"></i>
+                            <span>Rulers</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleWordFocusMode()">
+                            <i class="fas fa-expand"></i>
+                            <span>Focus Mode</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Show/Hide</span>
+                </div>
+            </div>
+
+            <!-- HELP TAB -->
+            <div class="docx-ribbon-pane" id="wordRibbonHelp" style="display: none;">
+                <div class="docx-ribbon-group">
+                    <div class="docx-ribbon-group-content">
+                        <button type="button" class="docx-ribbon-big-btn" onclick="openDocxHelpModal()">
+                            <i class="far fa-question-circle"></i>
+                            <span>Help Guide</span>
+                        </button>
+                        <button type="button" class="docx-ribbon-big-btn" onclick="openDocxShortcutsModal()">
+                            <i class="fas fa-keyboard"></i>
+                            <span>Shortcuts</span>
+                        </button>
+                    </div>
+                    <span class="docx-ribbon-group-title">Support</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tri-Panel Workspace Area -->
+        <div class="docx-workspace-main">
+            <!-- Left Collapsible Outline Panel -->
+            <div class="docx-outline-panel" id="docxOutlinePanel" style="width: 250px; display: flex; flex-direction: column; border-right: 1px solid #27272a; background: #18181b;">
+                <div class="docx-outline-header" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #27272a;">
+                    <h3 style="margin:0; font-size:14px; font-weight:600; color:#f8fafc;"><i class="fas fa-list" style="color:#a1a1aa; margin-right:6px;"></i> Outline</h3>
+                    <button type="button" class="docx-btn-tool" onclick="toggleDocxOutlinePanel()" title="Close Outline">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="docx-outline-doc-title" id="docxOutlineDocTitle" style="padding:10px 16px; font-size:12px; font-weight:600; color:#e4e4e7; background:#141416; border-bottom:1px solid #27272a; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">Project Report</div>
+                <div class="docx-outline-tree" id="docxOutlineTree" style="flex:1; overflow-y:auto; padding:8px 0;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Center Stage: Horizontal Ruler + Vertical Ruler + Page Canvas -->
+            <div class="docx-center-stage" id="docxCenterStage">
+                <!-- Top Horizontal Ruler -->
+                <div class="docx-ruler-horizontal" id="docxRulerHorizontal" style="display:flex; height:18px; background:#1f1f23; border-bottom:1px solid #27272a; padding-left:24px; color:#71717a; font-size:9px; align-items:center;">
+                    <div class="docx-ruler-track" style="display:flex; justify-content:space-between; width:100%; max-width:816px; margin:0 auto;">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span>
+                    </div>
+                </div>
+
+                <div class="docx-stage-viewport" id="docxStageViewport">
+                    <!-- Left Vertical Ruler -->
+                    <div class="docx-ruler-vertical" id="docxRulerVertical" style="width:20px; background:#1f1f23; border-right:1px solid #27272a; display:flex; flex-direction:column; justify-content:space-around; align-items:center; color:#71717a; font-size:8px; padding:20px 0;">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span>
+                    </div>
+
+                    <!-- Page Canvas Wrapper -->
+                    <div class="docx-page-canvas-wrapper" id="docxPageCanvasWrapper">
+                        <div class="docx-page-sheet" id="wordPageSheet" contenteditable="true" spellcheck="true" oninput="handleWordEditorInput()" onkeyup="handleWordEditorSelection()" onmouseup="handleWordEditorSelection()">
+                            <div style="text-align: center; padding: 60px 20px; color: #71717a;">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p style="margin-top: 14px; font-size: 14px;">Loading DOCX Document via Python OpenXML Engine...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Formatting & Inspector Panel -->
+            <div class="docx-inspector-panel" id="docxInspectorPanel" style="width: 290px; display: flex; flex-direction: column; border-left: 1px solid #27272a; background: #18181b;">
+                <div class="docx-insp-tabs">
+                    <button type="button" class="docx-insp-tab active" data-tab="format" onclick="switchDocxInspectorTab('format')">Format</button>
+                    <button type="button" class="docx-insp-tab" data-tab="styles" onclick="switchDocxInspectorTab('styles')">Styles</button>
+                    <button type="button" class="docx-insp-tab" data-tab="ai" onclick="switchDocxInspectorTab('ai')"><i class="fas fa-sparkles" style="color:#a1a1aa;"></i> AI</button>
+                </div>
+
+                <div class="docx-insp-body" style="flex:1; overflow-y:auto; padding:16px;">
+                    <!-- FORMAT TAB PANE -->
+                    <div class="docx-insp-pane" id="docxInspFormat" style="display: block;">
+                        <!-- Text Section -->
+                        <div class="docx-insp-section" style="margin-bottom:18px;">
+                            <div class="docx-insp-section-title" style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:8px; text-transform:uppercase;">Text</div>
+                            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                                <select class="docx-insp-select" style="flex:1;" id="inspFontFamily" onchange="wordApplyFontFamily(this.value)">
+                                    <option value="Inter" selected>Inter</option>
+                                    <option value="Calibri">Calibri</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </select>
+                                <select class="docx-insp-select" style="width:60px;" id="inspFontSize" onchange="wordApplyFontSize(this.value)">
+                                    <option value="1">8</option>
+                                    <option value="2">10</option>
+                                    <option value="3" selected>12</option>
+                                    <option value="4">14</option>
+                                    <option value="5">18</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:4px; margin-bottom:8px;">
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnBold" onclick="wordExecCmd('bold')" title="Bold"><b>B</b></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnItalic" onclick="wordExecCmd('italic')" title="Italic"><i>I</i></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnUnderline" onclick="wordExecCmd('underline')" title="Underline"><u>U</u></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnStrike" onclick="wordExecCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('subscript')">X<sub>2</sub></button>
+                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('superscript')">X<sup>2</sup></button>
+                            </div>
+                            <button type="button" class="docx-insp-clear-btn" style="width:100%; padding:6px; font-size:11px; cursor:pointer;" onclick="wordExecCmd('removeFormat')">
+                                <i class="fas fa-remove-format"></i> Clear Formatting
+                            </button>
+                        </div>
+
+                        <!-- Paragraph Section -->
+                        <div class="docx-insp-section" style="margin-bottom:18px;">
+                            <div class="docx-insp-section-title" style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:8px; text-transform:uppercase;">Paragraph</div>
+                            <div style="display:flex; gap:4px; margin-bottom:8px;">
+                                <button type="button" class="docx-insp-tool-btn active" id="inspBtnAlignLeft" onclick="wordExecCmd('justifyLeft')" title="Left"><i class="fas fa-align-left"></i></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignCenter" onclick="wordExecCmd('justifyCenter')" title="Center"><i class="fas fa-align-center"></i></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignRight" onclick="wordExecCmd('justifyRight')" title="Right"><i class="fas fa-align-right"></i></button>
+                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignJustify" onclick="wordExecCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></button>
+                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('outdent')"><i class="fas fa-outdent"></i></button>
+                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('indent')"><i class="fas fa-indent"></i></button>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px;">
+                                <label style="color:#94a3b8;">Line Spacing</label>
+                                <select class="docx-insp-select" id="inspLineSpacing" onchange="wordApplyLineSpacing(this.value)">
+                                    <option value="1.0">1.0</option>
+                                    <option value="1.15">1.15</option>
+                                    <option value="1.5" selected>1.5</option>
+                                    <option value="2.0">2.0</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Quick AI Tools Section -->
+                        <div class="docx-insp-section">
+                            <div class="docx-insp-section-title" style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:8px; text-transform:uppercase;">Quick AI Tools</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                                <button type="button" class="docx-ai-grid-btn" style="padding:8px 4px; font-size:11px; cursor:pointer;" onclick="runDocxAiQuickAction('summarize')">
+                                    <i class="far fa-file-alt" style="display:block; font-size:14px; margin-bottom:2px;"></i> Summarize
+                                </button>
+                                <button type="button" class="docx-ai-grid-btn" style="padding:8px 4px; font-size:11px; cursor:pointer;" onclick="runDocxAiQuickAction('improve')">
+                                    <i class="fas fa-magic" style="display:block; font-size:14px; margin-bottom:2px;"></i> Improve
+                                </button>
+                                <button type="button" class="docx-ai-grid-btn" style="padding:8px 4px; font-size:11px; cursor:pointer;" onclick="runDocxAiQuickAction('grammar')">
+                                    <i class="fas fa-check-circle" style="display:block; font-size:14px; margin-bottom:2px;"></i> Fix Grammar
+                                </button>
+                                <button type="button" class="docx-ai-grid-btn" style="padding:8px 4px; font-size:11px; cursor:pointer;" onclick="runDocxAiQuickAction('translate')">
+                                    <i class="fas fa-globe" style="display:block; font-size:14px; margin-bottom:2px;"></i> Translate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STYLES TAB PANE -->
+                    <div class="docx-insp-pane" id="docxInspStyles" style="display: none;">
+                        <div class="docx-insp-section">
+                            <div class="docx-insp-section-title" style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:8px; text-transform:uppercase;">Document Styles</div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <div class="docx-style-card active" onclick="wordApplyStyle('p')" style="padding:8px; border-radius:6px; cursor:pointer;">
+                                    <div style="font-size:14px; color:#f8fafc;">Normal Text</div>
+                                    <span style="font-size:11px; color:#64748b;">Default body paragraph</span>
+                                </div>
+                                <div class="docx-style-card" onclick="wordApplyStyle('h1')" style="padding:8px; border-radius:6px; cursor:pointer;">
+                                    <div style="font-size:16px; font-weight:700; color:#ffffff;">Heading 1</div>
+                                    <span style="font-size:11px; color:#a1a1aa;">Major section title</span>
+                                </div>
+                                <div class="docx-style-card" onclick="wordApplyStyle('h2')" style="padding:8px; border-radius:6px; cursor:pointer;">
+                                    <div style="font-size:14px; font-weight:600; color:#e4e4e7;">Heading 2</div>
+                                    <span style="font-size:11px; color:#a1a1aa;">Subsection header</span>
+                                </div>
+                                <div class="docx-style-card" onclick="wordInsertQuote()" style="padding:8px; border-radius:6px; cursor:pointer;">
+                                    <div style="font-style:italic; color:#d4d4d8; border-left:3px solid #71717a; padding-left:6px;">Quote Block</div>
+                                    <span style="font-size:11px; color:#a1a1aa;">Indented quote block</span>
+                                </div>
+                                <div class="docx-style-card" onclick="wordInsertCallout()" style="padding:8px; border-radius:6px; cursor:pointer;">
+                                    <div style="background:#27272a; border: 1px solid #3f3f46; padding:4px 6px; border-radius:4px; color:#e4e4e7; font-size:12px;">Notice Callout</div>
+                                    <span style="font-size:11px; color:#a1a1aa;">Callout alert box</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI ASSISTANT TAB PANE -->
+                    <div class="docx-insp-pane" id="docxInspAi" style="display: none;">
+                        <div class="docx-insp-section">
+                            <div class="docx-insp-section-title" style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:8px; text-transform:uppercase;">
+                                <i class="fas fa-sparkles" style="color: #a1a1aa;"></i> AI Copilot
+                            </div>
+                            <p style="font-size: 11px; color: #a1a1aa; margin-bottom: 8px;">Draft sections, summarize, or polish with Gemini AI.</p>
+                            <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+                                <textarea id="docxAiCustomPrompt" class="docx-ai-textarea" rows="3" placeholder="e.g. Draft an executive summary for this project..." style="width:100%; border-radius:6px; padding:8px; font-size:12px; resize:vertical;"></textarea>
+                                <button type="button" class="docx-ai-send-btn" onclick="runDocxAiCustomPrompt()" id="docxAiSubmitBtn" style="padding:8px; border-radius:6px; border:none; font-weight:600; cursor:pointer;">
+                                    <i class="fas fa-paper-plane"></i> Generate
+                                </button>
+                            </div>
+
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px;">
+                                <span class="docx-ai-chip" style="padding:3px 6px; border-radius:4px; font-size:10px; cursor:pointer;" onclick="applyAiPromptChip('Draft Executive Summary')">Exec Summary</span>
+                                <span class="docx-ai-chip" style="padding:3px 6px; border-radius:4px; font-size:10px; cursor:pointer;" onclick="applyAiPromptChip('Add Objectives and Key Results table')">Add OKRs</span>
+                                <span class="docx-ai-chip" style="padding:3px 6px; border-radius:4px; font-size:10px; cursor:pointer;" onclick="applyAiPromptChip('Make tone more formal and professional')">Formal Tone</span>
+                            </div>
+
+                            <div id="docxAiResultBox" class="docx-ai-result-box" style="display:none; padding:10px; border-radius:6px; margin-top:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:11px; font-weight:bold; color:#e4e4e7;">
+                                    <span>AI Output</span>
+                                    <button type="button" class="btn-micro" onclick="copyDocxAiResult()" style="background:transparent; border:none; color:#cbd5e1; cursor:pointer;"><i class="far fa-copy"></i> Copy</button>
+                                </div>
+                                <div id="docxAiResultContent" style="font-size:12px; color:#e2e8f0; line-height:1.5; max-height:200px; overflow-y:auto; white-space:pre-wrap;"></div>
+                                <button type="button" class="docx-btn-insert-ai" onclick="insertAiTextIntoDoc()" style="margin-top:8px; width:100%; padding:6px; border-radius:4px; border:none; font-size:11px; font-weight:600; cursor:pointer;">
+                                    <i class="fas fa-plus"></i> Insert at Cursor
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Status Bar -->
+        <div class="docx-ws-statusbar">
+            <div class="docx-status-left">
+                <span class="docx-status-metric" id="wordStatusPageCount">Page 1 of 1</span>
+                <span class="docx-status-divider"></span>
+                <span class="docx-status-metric" id="wordStatusWordCount">0 words</span>
+                <span class="docx-status-divider"></span>
+                <span class="docx-status-metric" id="wordStatusCharCount">0 chars</span>
+                <span class="docx-status-divider"></span>
+                <select class="docx-insp-select" style="padding:2px 4px; font-size:10px;" onchange="wordChangeLanguage(this.value)">
+                    <option value="en-US" selected>English (US)</option>
+                    <option value="en-GB">English (UK)</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="fr-FR">French</option>
+                </select>
+                <button type="button" class="docx-status-track-btn active" id="docxTrackChangesBtn" onclick="toggleTrackChanges()">
+                    <i class="far fa-edit"></i> Track Changes: On
+                </button>
+            </div>
+
+            <div class="docx-status-right">
+                <div class="docx-status-views" style="display:flex; gap:2px;">
+                    <button type="button" class="docx-view-mode-btn active" id="viewModePrint" onclick="wordSetViewLayout('print')" title="Print Layout"><i class="far fa-file-alt"></i></button>
+                    <button type="button" class="docx-view-mode-btn" id="viewModeWeb" onclick="wordSetViewLayout('web')" title="Web Layout"><i class="fas fa-globe"></i></button>
+                    <button type="button" class="docx-view-mode-btn" id="viewModeRead" onclick="wordSetViewLayout('read')" title="Read Mode"><i class="fas fa-book-open"></i></button>
+                </div>
+                <span class="docx-status-divider"></span>
+                <div class="docx-status-zoom" style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" class="docx-zoom-btn" onclick="wordAdjustZoomStep(-10)" title="Zoom Out">-</button>
+                    <input type="range" class="docx-zoom-slider" min="50" max="200" value="100" id="wordZoomRange" oninput="wordSetZoom(this.value)">
+                    <button type="button" class="docx-zoom-btn" onclick="wordAdjustZoomStep(10)" title="Zoom In">+</button>
+                    <span class="docx-zoom-pct" id="wordZoomDisplay" style="min-width:38px; text-align:right;">100%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Python Regex Modal -->
+    <div id="word-python-regex-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 500px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fab fa-python" style="color: #d4d4d8; font-size: 20px;"></i>
+                    <h3 style="margin: 0; font-size: 16px; color: #f8fafc;">Python Regex Search & Replace</h3>
+                </div>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closePythonRegexModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 14px;">Use Python standard regex patterns (re module) to search and replace text across the document XML package.</p>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; font-weight: 600;">Find Pattern (Regex / Plain text)</label>
+                    <input type="text" id="pyRegexFindInput" placeholder="e.g., \bDraft\b or NeuroCore" style="width: 100%; box-sizing:border-box; padding: 8px 12px; background: #141416; border: 1px solid #3f3f46; border-radius: 6px; color: #f8fafc; font-family: monospace;">
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; font-weight: 600;">Replace With</label>
+                    <input type="text" id="pyRegexReplaceInput" placeholder="e.g., Final Version or NeuroCore Office" style="width: 100%; box-sizing:border-box; padding: 8px 12px; background: #141416; border: 1px solid #3f3f46; border-radius: 6px; color: #f8fafc; font-family: monospace;">
+                </div>
+                <div id="pyRegexResultBox" style="display: none; padding: 10px; border-radius: 6px; font-size: 12px; background: #27272a; color: #f4f4f5; border: 1px solid #3f3f46;"></div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closePythonRegexModal()">Cancel</button>
+                <button type="button" class="docx-ws-share-btn" onclick="executePythonRegexReplace()">
+                    <i class="fab fa-python"></i> Run Python Replace
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Python Script Playground Modal -->
+    <div id="word-python-playground-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 620px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-terminal" style="color: #d4d4d8; font-size: 18px;"></i>
+                    <h3 style="margin: 0; font-size: 16px; color: #f8fafc;">Python Document Script Playground</h3>
+                </div>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closePythonPlaygroundModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 10px;">Execute live Python 3 scripts to inspect, transform, or calculate document statistics.</p>
+                <textarea id="pyScriptEditorArea" style="width: 100%; box-sizing:border-box; height: 160px; font-family: monospace; font-size: 12px; padding: 10px; background: #141416; border: 1px solid #3f3f46; border-radius: 6px; color: #e4e4e7; resize: vertical;"># Access document stats or write custom transformations
+import sys, re
+
+text = """Project Report Draft"""
+words = len(re.findall(r'\b\w+\b', text))
+result = f"Analyzed {words} words in document. Status: OK"
+</textarea>
+                <div style="margin-top: 8px; display: flex; gap: 8px;">
+                    <button type="button" class="docx-ws-icon-btn" onclick="loadPythonSnippet('count_words')">Word Count Snippet</button>
+                    <button type="button" class="docx-ws-icon-btn" onclick="loadPythonSnippet('format_text')">Text Clean Snippet</button>
+                    <button type="button" class="docx-ws-icon-btn" onclick="loadPythonSnippet('extract_headings')">Extract Headings</button>
+                </div>
+                <div id="pyScriptOutputConsole" style="margin-top: 10px; background: #141416; border: 1px solid #27272a; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #d4d4d8; min-height: 50px; max-height: 120px; overflow-y: auto; white-space: pre-wrap;">Ready. Output will appear here...</div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closePythonPlaygroundModal()">Close</button>
+                <button type="button" class="docx-ws-share-btn" onclick="runPythonPlaygroundCode()">
+                    <i class="fas fa-play"></i> Execute Script
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Find & Replace Modal -->
+    <div id="word-find-replace-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 480px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-magnifying-glass" style="color:#d4d4d8;"></i> Find and Replace</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeWordFindReplaceModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px;">Find What:</label>
+                    <input type="text" id="wordFindInput" placeholder="Enter text to find..." style="width: 100%; box-sizing:border-box; padding: 8px 12px; background: #141416; border: 1px solid #3f3f46; border-radius: 6px; color: #f8fafc;">
+                </div>
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px;">Replace With:</label>
+                    <input type="text" id="wordReplaceInput" placeholder="Enter replacement text..." style="width: 100%; box-sizing:border-box; padding: 8px 12px; background: #141416; border: 1px solid #3f3f46; border-radius: 6px; color: #f8fafc;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closeWordFindReplaceModal()">Cancel</button>
+                <button type="button" class="docx-ws-share-btn" onclick="wordPerformFindReplace()">Replace All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Symbols Modal -->
+    <div id="word-symbols-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 440px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-icons" style="color:#d4d4d8;"></i> Insert Special Symbol</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeWordSymbolsModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; font-size: 18px; text-align: center;">
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('©')">©</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('®')">®</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('™')">™</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('€')">€</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('£')">£</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('¥')">¥</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('§')">§</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('¶')">¶</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('•')">•</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('→')">→</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('←')">←</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('↑')">↑</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('↓')">↓</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('≠')">≠</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('≤')">≤</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('≥')">≥</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('±')">±</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('π')">π</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('∞')">∞</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('√')">√</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('★')">★</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('✔')">✔</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('⚡')">⚡</button>
+                    <button type="button" class="docx-btn-tool" onclick="wordInsertSymbol('❤')">❤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Table Modal -->
+    <div id="word-table-insert-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 420px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-table" style="color:#d4d4d8; margin-right:6px;"></i> Insert Table</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-table-insert-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 14px;">
+                    <div>
+                        <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px; font-weight:600;">Rows</label>
+                        <input type="number" id="tblModalRows" value="3" min="1" max="20" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px; font-weight:600;">Columns</label>
+                        <input type="number" id="tblModalCols" value="3" min="1" max="10" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc;">
+                    </div>
+                </div>
+                <p style="font-size:12px; color:#a1a1aa; margin:0;">Creates a styled grid table matching your document layout.</p>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closeModal('word-table-insert-modal')">Cancel</button>
+                <button type="button" class="docx-ws-share-btn" onclick="submitInsertTableModal()">Insert Table</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Image Modal -->
+    <div id="word-image-insert-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 480px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-image" style="color:#d4d4d8; margin-right:6px;"></i> Insert Image</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-image-insert-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px; font-weight:600;">Image Web URL</label>
+                    <input type="text" id="imgModalUrl" placeholder="https://example.com/figure.png" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px; font-weight:600;">Caption (Optional)</label>
+                    <input type="text" id="imgModalCaption" placeholder="e.g. Figure 1: Architecture diagram" style="width:100%; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closeModal('word-image-insert-modal')">Cancel</button>
+                <button type="button" class="docx-ws-share-btn" onclick="submitInsertImageModal()">Insert Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Citation Modal -->
+    <div id="word-citation-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 480px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-quote-right" style="color:#d4d4d8; margin-right:6px;"></i> Insert Citation</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-citation-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px; font-weight:600;">Citation Reference / Source</label>
+                    <input type="text" id="citationModalInput" placeholder="e.g. Smith et al., 2026, IEEE Trans." style="width:100%; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closeModal('word-citation-modal')">Cancel</button>
+                <button type="button" class="docx-ws-share-btn" onclick="submitCitationModal()">Insert Citation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Count & Document Statistics Modal -->
+    <div id="word-stats-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 480px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-chart-bar" style="color:#d4d4d8; margin-right:6px;"></i> Document Statistics</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-stats-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+                    <div style="background:#141416; border:1px solid #27272a; border-radius:8px; padding:12px;">
+                        <div style="font-size:11px; color:#a1a1aa; text-transform:uppercase;">Words</div>
+                        <div id="statModalWords" style="font-size:20px; font-weight:700; color:#f4f4f5; margin-top:4px;">0</div>
+                    </div>
+                    <div style="background:#141416; border:1px solid #27272a; border-radius:8px; padding:12px;">
+                        <div style="font-size:11px; color:#a1a1aa; text-transform:uppercase;">Characters</div>
+                        <div id="statModalChars" style="font-size:20px; font-weight:700; color:#f4f4f5; margin-top:4px;">0</div>
+                    </div>
+                    <div style="background:#141416; border:1px solid #27272a; border-radius:8px; padding:12px;">
+                        <div style="font-size:11px; color:#a1a1aa; text-transform:uppercase;">No-Space Chars</div>
+                        <div id="statModalNoSpace" style="font-size:20px; font-weight:700; color:#f4f4f5; margin-top:4px;">0</div>
+                    </div>
+                    <div style="background:#141416; border:1px solid #27272a; border-radius:8px; padding:12px;">
+                        <div style="font-size:11px; color:#a1a1aa; text-transform:uppercase;">Paragraphs</div>
+                        <div id="statModalParas" style="font-size:20px; font-weight:700; color:#f4f4f5; margin-top:4px;">0</div>
+                    </div>
+                </div>
+                <div style="background:#141416; border:1px solid #27272a; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:12px; color:#a1a1aa;">Estimated Reading Time:</span>
+                    <span id="statModalReadTime" style="font-size:13px; font-weight:600; color:#f4f4f5;">~1 min</span>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end;">
+                <button type="button" class="docx-ws-share-btn" onclick="closeModal('word-stats-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Python OpenXML Inspection Modal -->
+    <div id="word-xml-inspect-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 580px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fab fa-python" style="color:#d4d4d8; margin-right:6px;"></i> OpenXML Package Structure</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-xml-inspect-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <div id="xmlInspectDetails" style="font-family:monospace; font-size:12px; background:#141416; border:1px solid #27272a; border-radius:8px; padding:12px; max-height:280px; overflow-y:auto; color:#d4d4d8; line-height:1.6; white-space:pre-wrap;">Loading OpenXML details...</div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end;">
+                <button type="button" class="docx-ws-share-btn" onclick="closeModal('word-xml-inspect-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help & Shortcuts Modal -->
+    <div id="word-help-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="far fa-question-circle" style="color:#d4d4d8; margin-right:6px;"></i> Help Guide & Shortcuts</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-help-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px; max-height: 420px; overflow-y: auto;">
+                <h4 style="margin:0 0 8px 0; font-size:13px; color:#f4f4f5; text-transform:uppercase; letter-spacing:0.5px;">Keyboard Shortcuts</h4>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Save Document</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + S</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Print / PDF</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + P</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Bold</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + B</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Italic</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + I</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Underline</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + U</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Find & Replace</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + F</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Undo</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + Z</kbd>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:6px 10px; background:#141416; border:1px solid #27272a; border-radius:4px;">
+                        <span style="color:#a1a1aa;">Redo</span>
+                        <kbd style="background:#27272a; padding:1px 6px; border-radius:3px; font-family:monospace; color:#ffffff;">Ctrl + Y</kbd>
+                    </div>
+                </div>
+
+                <h4 style="margin:0 0 8px 0; font-size:13px; color:#f4f4f5; text-transform:uppercase; letter-spacing:0.5px;">Workspace Features</h4>
+                <ul style="margin:0; padding-left:20px; font-size:12px; color:#a1a1aa; line-height:1.7;">
+                    <li><strong style="color:#e4e4e7;">Home:</strong> Complete typography formatting, alignment, headings, and format painter.</li>
+                    <li><strong style="color:#e4e4e7;">Insert:</strong> Tables, images, quotes, horizontal rules, callout alerts, and special symbols.</li>
+                    <li><strong style="color:#e4e4e7;">Layout:</strong> Margin presets (Normal, Narrow, Wide), paper sizing (A4, Letter), orientation, and column guides.</li>
+                    <li><strong style="color:#e4e4e7;">Python Engine:</strong> Regex search/replace, live Python script runner, XML inspection, and deep statistics.</li>
+                    <li><strong style="color:#e4e4e7;">AI Copilot:</strong> Interactive section drafting, grammar polishing, and executive summaries.</li>
+                </ul>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end;">
+                <button type="button" class="docx-ws-share-btn" onclick="closeModal('word-help-modal')">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Document Modal -->
+    <div id="word-share-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 480px; background:#18181b; border:1px solid #3f3f46; border-radius:10px; color:#f8fafc; overflow:hidden;">
+            <div class="modal-header" style="padding:14px 20px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#f8fafc;"><i class="fas fa-share-alt" style="color:#d4d4d8; margin-right:6px;"></i> Share Document</h3>
+                <button class="modal-close-btn" style="background:transparent; border:none; color:#a1a1aa; font-size:20px; cursor:pointer;" onclick="closeModal('word-share-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <label style="display:block; font-size:12px; color:#cbd5e1; margin-bottom:6px; font-weight:600;">Document Link</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="shareDocUrlInput" readonly style="flex:1; box-sizing:border-box; padding:8px 12px; background:#141416; border:1px solid #3f3f46; border-radius:6px; color:#f8fafc; font-family:monospace; font-size:12px;">
+                    <button type="button" class="docx-ws-share-btn" onclick="copyShareModalUrl()"><i class="far fa-copy"></i> Copy</button>
+                </div>
+                <p style="font-size:11px; color:#a1a1aa; margin-top:10px; margin-bottom:0;">Anyone with this link can view and edit the document in this workspace.</p>
+            </div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end;">
+                <button type="button" class="docx-ws-icon-btn" onclick="closeModal('word-share-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="word-editor.js"></script>
+</body>
+</html>

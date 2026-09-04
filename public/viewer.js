@@ -148,6 +148,11 @@ function downloadOriginal() {
     window.open("/docx/file/" + encodeURIComponent(filename), "_blank");
 }
 
+function openWordEditorTab() {
+    const target = filename ? encodeURIComponent(filename) : "";
+    window.location.href = `/word-editor.html?file=${target}`;
+}
+
 async function init() {
     const docTitle = document.getElementById("docTitle");
     const editToggleBtn = document.getElementById("editToggleBtn");

@@ -12,6 +12,10 @@ const pdfValidation = (req, file, cb) => {
         "image/png",
         "image/jpeg",
         "image/jpg",
+        "image/webp",
+        "image/svg+xml",
+        "text/csv",
+        "text/plain",
         "application/octet-stream"
     ];
 
@@ -25,7 +29,11 @@ const pdfValidation = (req, file, cb) => {
         ".ppt",
         ".png",
         ".jpg",
-        ".jpeg"
+        ".jpeg",
+        ".webp",
+        ".svg",
+        ".csv",
+        ".txt"
     ];
 
     const ext = path.extname(file.originalname || "").toLowerCase();

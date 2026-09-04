@@ -73,23 +73,23 @@
                 </div>
 
                 <div class="user-profile-menu-wrapper">
-                    <div class="user-profile-chip" onclick="toggleUserDropdown(event)">
-                        <div class="user-avatar-circle">N</div>
+                    <div class="user-profile-chip" onclick="toggleUserDropdown(event)" title="Account Profile & Settings">
+                        <div class="user-avatar-circle" id="userAvatarInitial">N</div>
                         <div class="user-meta-text">
-                            <span class="user-name">Neuro User</span>
-                            <span class="user-plan">Premium Plan</span>
+                            <span class="user-name" id="topbarUserName">Neuro User</span>
+                            <span class="user-plan" id="topbarUserPlan">Premium Plan</span>
                         </div>
                         <i class="fas fa-chevron-down user-dropdown-arrow"></i>
                     </div>
                     <div id="userDropdownMenu" class="user-dropdown-menu" style="display: none;">
                         <div class="user-dropdown-header">
-                            <strong>Neuro User</strong>
-                            <span>user@neurocore.ai</span>
+                            <strong id="dropdownUserName">Neuro User</strong>
+                            <span id="dropdownUserEmail">user@neurocore.ai</span>
                         </div>
                         <div class="user-dropdown-divider"></div>
-                        <button onclick="openComingSoonModal('Account Settings')"><i class="fas fa-user-cog"></i> Account Settings</button>
+                        <button onclick="openProfileSettingsModal()"><i class="fas fa-user-cog"></i> Profile & Account Settings</button>
                         <button onclick="openComingSoonModal('Subscription & Billing')"><i class="fas fa-credit-card"></i> Manage Subscription</button>
-                        <button onclick="openComingSoonModal('Preferences')"><i class="fas fa-sliders-h"></i> Preferences</button>
+                        <button onclick="openProfileSettingsModal()"><i class="fas fa-sliders-h"></i> Preferences</button>
                         <div class="user-dropdown-divider"></div>
                         <button onclick="showToast('Signed out of session', 'info')"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
                     </div>
@@ -137,13 +137,18 @@
                                 <i class="far fa-file-pdf"></i>
                                 <span>PDF Documents</span>
                             </button>
+                            <button class="nav-item" id="nav-docx" onclick="openDocxSection()">
+                                <i class="far fa-file-word"></i>
+                                <span>DOCX Documents</span>
+                            </button>
                             <button class="nav-item" id="nav-pdf-tools" onclick="openPdfToolsHub()">
                                 <i class="fas fa-tools"></i>
                                 <span>PDF Tools</span>
                             </button>
-                            <button class="nav-item" id="nav-document-editor" onclick="openDocxEditorNav()">
-                                <i class="far fa-edit"></i>
-                                <span>Document Editor</span>
+                            <button class="nav-item" id="nav-document-editor" onclick="openDocxWordEditor()" title="Open DOCX Editor (Word) in new tab">
+                                <i class="fas fa-file-word" style="color: #2563eb;"></i>
+                                <span>DOCX Editor (Word)</span>
+                                <i class="fas fa-external-link-alt" style="margin-left: auto; font-size: 11px; opacity: 0.65;"></i>
                             </button>
                             <button class="nav-item" id="nav-spreadsheet" onclick="openComingSoonModal('Spreadsheet Suite')">
                                 <i class="fas fa-th"></i>
@@ -201,14 +206,23 @@
                 <section id="dashboard-section" class="content-section active">
                     
                     <!-- Dashboard Greeting Header -->
-                    <div class="dashboard-greeting-bar">
+                    <div class="dashboard-greeting-bar" id="dashboardGreetingBar">
                         <div class="greeting-text-block">
-                            <h2 class="greeting-heading" id="greetingHeading">Good morning, Neuro User <span class="wave-emoji">👋</span></h2>
-                            <p class="greeting-subtitle">Welcome back! Your workspace is ready.</p>
+                            <h2 class="greeting-heading" id="greetingHeading">
+                                <span id="greetingSalutation">Good morning</span>, <span id="greetingUserName" class="greeting-username-editable" title="Click to customize your name" onclick="editUserNamePrompt()">Neuro User</span>
+                                <span class="wave-emoji" id="waveEmoji" title="Click to say hello!" onclick="triggerWaveAnimation()">👋</span>
+                                <button type="button" class="greeting-edit-name-btn" id="editGreetingNameBtn" title="Edit your name & profile" onclick="openProfileSettingsModal()">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </h2>
+                            <p class="greeting-subtitle" id="greetingSubtitle">
+                                <span class="greeting-live-dot"></span>
+                                <span id="greetingSubtitleText">Welcome back! Your workspace is ready.</span>
+                            </p>
                         </div>
                         <div class="greeting-actions-block">
-                            <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.pptx,.xml,.csv,.png,.jpg,.jpeg" style="display: none;" onchange="handleDirectUpload(this)">
-                            <button class="btn-primary-action btn-upload" onclick="document.getElementById('fileInput').click()">
+                            <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.webp,.svg,.txt" style="display: none;" onchange="handleDirectUpload(this)">
+                            <button class="btn-primary-action btn-upload" id="topUploadBtn" onclick="document.getElementById('fileInput').click()">
                                 <i class="fas fa-arrow-up-from-bracket"></i>
                                 <span>Upload</span>
                             </button>
@@ -220,7 +234,8 @@
                                     <i class="fas fa-chevron-down dropdown-arrow"></i>
                                 </button>
                                 <div id="newDropdownMenu" class="new-dropdown-menu" style="display: none;">
-                                    <button onclick="createNewDocxDocument()"><i class="fas fa-file-word icon-blue"></i> New Word (.docx)</button>
+                                    <button onclick="openDocxWordEditor()"><i class="fas fa-file-word icon-blue"></i> Open DOCX Editor Workspace</button>
+                                    <button onclick="createNewDocxDocument()"><i class="fas fa-file-circle-plus icon-blue"></i> New Word Document (.docx)</button>
                                     <button onclick="openResumeBuilderModal()"><i class="fas fa-id-card icon-purple"></i> New Resume Draft</button>
                                     <button onclick="openProtectModalDirect()"><i class="fas fa-lock icon-red"></i> Protect PDF</button>
                                     <button onclick="openComingSoonModal('New Spreadsheet')"><i class="fas fa-file-excel icon-green"></i> New Sheet (.xlsx)</button>
@@ -257,15 +272,15 @@
                             <div class="cat-stat-label">PDF Documents</div>
                         </div>
 
-                        <div class="cat-stat-card" onclick="filterByNavType('docx')">
+                        <div class="cat-stat-card" id="cat-card-docx" onclick="openDocxSection()">
                             <div class="cat-card-header">
                                 <div class="cat-icon-box cat-docx-icon">
                                     <span class="cat-badge-txt">W</span>
                                 </div>
                                 <span class="cat-title">DOCX</span>
-                                <button class="cat-menu-btn" onclick="event.stopPropagation(); filterByNavType('docx')"><i class="fas fa-ellipsis-v"></i></button>
+                                <button class="cat-menu-btn" onclick="event.stopPropagation(); openDocxSection()"><i class="fas fa-ellipsis-v"></i></button>
                             </div>
-                            <div class="cat-stat-number" id="stat-docx-count">452</div>
+                            <div class="cat-stat-number" id="stat-docx-count">0</div>
                             <div class="cat-stat-label">Word Documents</div>
                         </div>
 
@@ -306,6 +321,76 @@
                         </div>
                     </div>
 
+                    <!-- Dashboard Drag & Drop Upload Zone Area -->
+                    <div class="dashboard-dropzone-section" id="dashboardDropzoneWrapper">
+                        <div class="dashboard-dropzone" id="dashboardDropzone" tabindex="0" role="button" aria-label="Drop files to upload or click to browse" onclick="triggerDashboardFilePicker(event)" onkeydown="if(event.key==='Enter'||event.key===' ') triggerDashboardFilePicker(event)">
+                            <input type="file" id="dashboardFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.csv,.png,.jpg,.jpeg,.webp,.svg,.txt" style="display: none;" onchange="handleDashboardFileInput(this)">
+                            
+                            <!-- Default Dropzone Content -->
+                            <div class="dropzone-default-view" id="dropzoneDefaultView">
+                                <div class="dropzone-icon-circle" id="dropzoneIconCircle">
+                                    <i class="fas fa-cloud-arrow-up dropzone-cloud-icon"></i>
+                                </div>
+                                
+                                <div class="dropzone-text-block">
+                                    <div class="dropzone-headline-row">
+                                        <span class="dropzone-primary-text">Drag & drop your files here to upload</span>
+                                        <span class="dropzone-text-separator">or</span>
+                                        <button type="button" class="dropzone-browse-button" id="dropzoneBrowseBtn" onclick="triggerDashboardFilePicker(event)">
+                                            <i class="fas fa-folder-open"></i>
+                                            <span>Browse Files</span>
+                                        </button>
+                                    </div>
+                                    <p class="dropzone-hint-text">Supported: PDF, Word (DOCX/DOC), Excel (XLSX/CSV), Slides (PPTX), Images (PNG/JPG) up to 50MB</p>
+                                </div>
+
+                                <div class="dropzone-badges-tray">
+                                    <span class="drop-fmt-pill fmt-pdf" title="Adobe PDF (.pdf)"><i class="fas fa-file-pdf"></i> PDF</span>
+                                    <span class="drop-fmt-pill fmt-docx" title="Microsoft Word (.docx, .doc)"><i class="fas fa-file-word"></i> DOCX</span>
+                                    <span class="drop-fmt-pill fmt-xlsx" title="Spreadsheets (.xlsx, .csv, .xls)"><i class="fas fa-file-excel"></i> XLSX / CSV</span>
+                                    <span class="drop-fmt-pill fmt-pptx" title="Presentations (.pptx, .ppt)"><i class="fas fa-file-powerpoint"></i> PPTX</span>
+                                    <span class="drop-fmt-pill fmt-img" title="Images (.png, .jpg, .jpeg, .webp, .svg)"><i class="fas fa-file-image"></i> Images</span>
+                                    <span class="drop-fmt-pill fmt-max" title="Maximum file size 50MB"><i class="fas fa-circle-check"></i> Max 50MB</span>
+                                </div>
+                            </div>
+
+                            <!-- Drag-over Active Highlight State -->
+                            <div class="dropzone-dragover-view" id="dropzoneDragoverView">
+                                <div class="dragover-anim-icon">
+                                    <i class="fas fa-arrow-down-long"></i>
+                                </div>
+                                <div class="dragover-text-block">
+                                    <h3>Drop files to upload instantly</h3>
+                                    <p>Your documents will be automatically processed, categorized, and added to your workspace</p>
+                                </div>
+                            </div>
+
+                            <!-- Live Upload Progress Panel -->
+                            <div class="dropzone-progress-view" id="dropzoneProgressView" style="display: none;">
+                                <div class="dropzone-progress-header">
+                                    <div class="progress-status-info">
+                                        <div class="progress-spinner-box">
+                                            <i class="fas fa-spinner fa-spin" id="dropzoneSpinner"></i>
+                                        </div>
+                                        <div class="progress-text-details">
+                                            <h4 id="dropzoneUploadTitle">Uploading files...</h4>
+                                            <span id="dropzoneUploadSubtext" class="progress-subtext">0 of 0 uploaded</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress-percentage-pill" id="dropzoneUploadPercentage">0%</div>
+                                </div>
+                                
+                                <div class="dropzone-bar-track">
+                                    <div class="dropzone-bar-fill" id="dropzoneProgressBarFill" style="width: 0%;"></div>
+                                </div>
+
+                                <div class="dropzone-queue-list" id="dropzoneQueueList">
+                                    <!-- Populated via script.js -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Middle Row: Recent Documents + Quick Access -->
                     <div class="dashboard-middle-grid">
                         
@@ -322,9 +407,111 @@
                                         <button type="button" onclick="bulkDelete()">🗑 Delete</button>
                                         <button type="button" class="bulk-cancel-btn" onclick="exitSelectionMode()">✕</button>
                                     </div>
+                                    <div class="dashboard-filter-wrapper" style="position: relative; display: inline-block;">
+                                        <button type="button" class="btn-filter-toggle" id="dashboardFilterBtn" onclick="toggleDashboardFilterPopover(event)" title="Filter documents">
+                                            <i class="fas fa-filter"></i> <span>Filters</span>
+                                            <span id="dashActiveFilterCount" class="dash-filter-badge" style="display: none;">0</span>
+                                        </button>
+                                        
+                                        <!-- Dashboard Floating Filter Popover -->
+                                        <div id="dashboardFilterPopover" class="dashboard-filter-popover" style="display: none;" onclick="event.stopPropagation();">
+                                            <div class="dash-filter-card-header">
+                                                <span class="dash-filter-title">Filters</span>
+                                                <button type="button" class="pdf-reset-link-btn" onclick="resetDashboardFilters()">Reset</button>
+                                            </div>
+
+                                            <div class="pdf-filter-field">
+                                                <label>Tags</label>
+                                                <select id="dashFilterTagSelect" onchange="applyDashboardFilters()">
+                                                    <option value="">Select tags</option>
+                                                    <option value="proposal">proposal</option>
+                                                    <option value="market">market</option>
+                                                    <option value="research">research</option>
+                                                    <option value="manual">manual</option>
+                                                    <option value="policy">policy</option>
+                                                    <option value="finance">finance</option>
+                                                    <option value="product">product</option>
+                                                    <option value="training">training</option>
+                                                    <option value="invoice">invoice</option>
+                                                    <option value="legal">legal</option>
+                                                    <option value="meeting">meeting</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="pdf-filter-field">
+                                                <label>Added By</label>
+                                                <select id="dashFilterUserSelect" onchange="applyDashboardFilters()">
+                                                    <option value="">Select user</option>
+                                                    <option value="You">You</option>
+                                                    <option value="Team">Team</option>
+                                                    <option value="HR Team">HR Team</option>
+                                                    <option value="Finance">Finance</option>
+                                                    <option value="Marketing">Marketing</option>
+                                                    <option value="Legal Team">Legal Team</option>
+                                                    <option value="L&D Team">L&D Team</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="pdf-filter-field">
+                                                <label>Date Range</label>
+                                                <div class="pdf-select-with-icon">
+                                                    <select id="dashFilterDateSelect" onchange="handleDashDateRangeChange(this.value)">
+                                                        <option value="">Select date range</option>
+                                                        <option value="today">Today</option>
+                                                        <option value="yesterday">Yesterday</option>
+                                                        <option value="this-week">This Week</option>
+                                                        <option value="this-month">This Month</option>
+                                                        <option value="last-30-days">Last 30 Days</option>
+                                                        <option value="this-year">This Year</option>
+                                                        <option value="older">Older</option>
+                                                        <option value="custom">Custom date range...</option>
+                                                    </select>
+                                                    <i class="far fa-calendar-alt" style="cursor: pointer;" onclick="toggleDashCustomDatePicker()"></i>
+                                                </div>
+                                                <div id="dashCustomDateInputs" class="pdf-custom-date-row" style="display: none; margin-top: 6px;">
+                                                    <input type="date" id="dashFilterStartDate" class="pdf-custom-date-input" title="Start Date" onchange="applyDashboardFilters()">
+                                                    <span class="date-sep">to</span>
+                                                    <input type="date" id="dashFilterEndDate" class="pdf-custom-date-input" title="End Date" onchange="applyDashboardFilters()">
+                                                </div>
+                                            </div>
+
+                                            <div class="pdf-filter-field">
+                                                <label>File Size</label>
+                                                <select id="dashFilterSizeSelect" onchange="applyDashboardFilters()">
+                                                    <option value="">Any size</option>
+                                                    <option value="small">&lt; 1 MB</option>
+                                                    <option value="medium">1 - 5 MB</option>
+                                                    <option value="large">5 - 10 MB</option>
+                                                    <option value="huge">&gt; 10 MB</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="pdf-filter-field">
+                                                <label>Security</label>
+                                                <select id="dashFilterSecuritySelect" onchange="applyDashboardFilters()">
+                                                    <option value="">Any</option>
+                                                    <option value="encrypted">Encrypted</option>
+                                                    <option value="unencrypted">Unencrypted</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="pdf-filter-btn-group">
+                                                <button type="button" class="pdf-apply-filter-btn" onclick="applyDashboardFilters()">Apply Filters</button>
+                                                <button type="button" class="pdf-clear-filter-btn" onclick="resetDashboardFilters()">Clear</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <button class="btn-view-all" onclick="filterByNavType('all')">View all</button>
                                 </div>
                             </div>
+                            
+                            <!-- Active Filters Chips Bar for Dashboard -->
+                            <div id="dashboardActiveFiltersBar" class="active-filters-chips-bar" style="display: none;">
+                                <span class="active-chips-label"><i class="fas fa-filter"></i> Filters:</span>
+                                <div id="dashboardActiveChipsList" class="active-chips-list"></div>
+                                <button type="button" class="clear-all-chips-btn" onclick="resetDashboardFilters()">Clear all</button>
+                            </div>
+
                             <div class="table-responsive-wrapper">
                                 <table id="pdfTable" class="modern-doc-table">
                                     <thead>
@@ -689,6 +876,13 @@
                                     </div>
                                 </div>
 
+                                <!-- Active Filters Chips Bar for PDF Section -->
+                                <div id="pdfActiveFiltersBar" class="active-filters-chips-bar" style="display: none;">
+                                    <span class="active-chips-label"><i class="fas fa-filter"></i> Active Filters:</span>
+                                    <div id="pdfActiveChipsList" class="active-chips-list"></div>
+                                    <button type="button" class="clear-all-chips-btn" onclick="resetPdfSidebarFilters()">Clear all</button>
+                                </div>
+
                                 <!-- PDF Data Table -->
                                 <div class="pdf-table-responsive-wrapper">
                                     <table class="pdf-custom-data-table">
@@ -794,9 +988,12 @@
                             </div>
 
                             <!-- Filters Card -->
-                            <div class="pdf-filter-panel-card">
+                            <div class="pdf-filter-panel-card" id="pdfFiltersPanelCard">
                                 <div class="pdf-filter-card-header">
-                                    <span class="pdf-sidebar-title">Filters</span>
+                                    <div class="pdf-filter-title-wrap">
+                                        <span class="pdf-sidebar-title" style="margin-bottom: 0;">Filters</span>
+                                        <span id="pdfActiveFilterCount" class="pdf-filter-active-count" style="display: none;">0</span>
+                                    </div>
                                     <button type="button" class="pdf-reset-link-btn" onclick="resetPdfSidebarFilters()">Reset</button>
                                 </div>
 
@@ -835,15 +1032,23 @@
                                 <div class="pdf-filter-field">
                                     <label>Date Range</label>
                                     <div class="pdf-select-with-icon">
-                                        <select id="pdfFilterDateSelect" onchange="applyPdfSidebarFilters()">
+                                        <select id="pdfFilterDateSelect" onchange="handlePdfDateRangeChange(this.value)">
                                             <option value="">Select date range</option>
                                             <option value="today">Today</option>
+                                            <option value="yesterday">Yesterday</option>
                                             <option value="this-week">This Week</option>
                                             <option value="this-month">This Month</option>
+                                            <option value="last-30-days">Last 30 Days</option>
                                             <option value="this-year">This Year</option>
                                             <option value="older">Older</option>
+                                            <option value="custom">Custom date range...</option>
                                         </select>
-                                        <i class="far fa-calendar-alt"></i>
+                                        <i class="far fa-calendar-alt" style="cursor: pointer;" onclick="togglePdfCustomDatePicker()" title="Custom Date Range"></i>
+                                    </div>
+                                    <div id="pdfCustomDateInputs" class="pdf-custom-date-row" style="display: none; margin-top: 6px;">
+                                        <input type="date" id="pdfFilterStartDate" class="pdf-custom-date-input" title="Start Date" onchange="applyPdfSidebarFilters()">
+                                        <span class="date-sep">to</span>
+                                        <input type="date" id="pdfFilterEndDate" class="pdf-custom-date-input" title="End Date" onchange="applyPdfSidebarFilters()">
                                     </div>
                                 </div>
 
@@ -975,25 +1180,1384 @@
                     </div>
                 </section>
 
-                <!-- DOCX View -->
+                <!-- DOCX Document Management View -->
                 <section id="docx-section" class="content-section">
-                    <div class="section-top-header">
-                        <h2>📝 DOCX Documents</h2>
-                        <p>Preview formatted Word documents, make text edits, and save back to .docx</p>
-                    </div>
-                    <div class="dashboard-card">
-                        <div class="card-header">
-                            <h3>Uploaded Word Documents</h3>
-                            <span class="badge" id="docx-count">0 files</span>
+                    <!-- Hidden File Inputs -->
+                    <input type="file" id="docxSectionFileInput" accept=".docx,.doc" multiple style="display: none;" onchange="handleDocxSectionFileUpload(event)">
+
+                    <!-- Top Header -->
+                    <div class="docx-page-header">
+                        <div class="docx-page-title-group">
+                            <div class="docx-page-main-icon">
+                                <span class="docx-badge-text">docx</span>
+                            </div>
+                            <div class="docx-page-title-text">
+                                <h2>Document Management</h2>
+                                <p>Manage, edit and organize your DOCX files</p>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <p id="docxStatusMessage" style="display: none; color: #ff4d4f; margin-bottom: 12px;"></p>
-                            <div id="docxFileList" class="file-list">
-                                <!-- Dynamic content -->
+                        <div class="docx-quote-box">
+                            <div class="docx-quote-text">"Write Today, Build Tomorrow"</div>
+                            <div class="docx-quote-author">— NeuroCore</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Action Bar -->
+                    <div class="docx-action-bar">
+                        <div class="docx-action-left">
+                            <div class="docx-upload-btn-group">
+                                <button type="button" class="btn-docx-action btn-docx-primary" onclick="triggerDocxUpload()">
+                                    <i class="fas fa-plus"></i> Upload
+                                </button>
+                                <button type="button" class="btn-docx-action-caret" onclick="toggleDocxUploadDropdown(event)">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="docx-dropdown-popover" id="docxUploadDropdown" style="display: none;">
+                                    <button type="button" onclick="triggerDocxUpload()"><i class="fas fa-file-arrow-up"></i> Upload Single File</button>
+                                    <button type="button" onclick="triggerDocxUpload()"><i class="fas fa-folder-arrow-up"></i> Upload Batch Files</button>
+                                    <button type="button" onclick="createNewDocxDocument()"><i class="fas fa-file-circle-plus"></i> Blank Document</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-docx-action" onclick="createNewDocxDocument()">
+                                <i class="far fa-file-lines"></i> New Document
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="openDocxNewFolderModal()">
+                                <i class="far fa-folder"></i> New Folder
+                            </button>
+                            <button type="button" class="btn-docx-action btn-docx-primary" onclick="openSelectedDocxInEditor()">
+                                <i class="fas fa-file-word"></i> Open in DOCX Editor
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="toggleDocxFullscreenPreview()">
+                                <i class="far fa-eye"></i> Quick Preview
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="openDocxWordEditor()">
+                                <i class="fas fa-plus"></i> New Blank Doc
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="renameSelectedDocx()">
+                                <i class="fas fa-pencil-alt"></i> Rename
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="moveSelectedDocx()">
+                                <i class="fas fa-external-link-alt"></i> Move
+                            </button>
+                            <button type="button" class="btn-docx-action" onclick="copySelectedDocx()">
+                                <i class="far fa-copy"></i> Copy
+                            </button>
+                            <button type="button" class="btn-docx-action btn-docx-danger" onclick="deleteSelectedDocx()">
+                                <i class="far fa-trash-alt"></i> Delete
+                            </button>
+                            <div class="docx-more-wrap" style="position: relative;">
+                                <button type="button" class="btn-docx-action" onclick="toggleDocxMoreDropdown(event)">
+                                    <i class="fas fa-ellipsis-v"></i> More
+                                </button>
+                                <div class="docx-dropdown-popover" id="docxMoreDropdown" style="display: none;">
+                                    <button type="button" onclick="downloadSelectedDocx()"><i class="fas fa-download"></i> Download .docx</button>
+                                    <button type="button" onclick="convertSelectedDocxToPdf()"><i class="fas fa-file-pdf"></i> Convert to PDF</button>
+                                    <button type="button" onclick="protectSelectedDocx()"><i class="fas fa-shield-alt"></i> Protect / Encrypt</button>
+                                    <button type="button" onclick="addDocxTagModal()"><i class="fas fa-tag"></i> Manage Tags</button>
+                                    <button type="button" onclick="aiSummarizeSelectedDocx()"><i class="fas fa-sparkles"></i> AI Summarize</button>
+                                    <button type="button" onclick="exportDocxList()"><i class="fas fa-file-export"></i> Export File List</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tri-Pane Workspace Grid -->
+                    <div class="docx-tri-grid">
+                        <!-- Column 1: Files Table -->
+                        <div class="docx-table-panel">
+                            <div class="docx-tab-header-row">
+                                <div class="docx-nav-tabs">
+                                    <button type="button" class="docx-tab-btn active" data-tab="all" onclick="switchDocxTab('all')">All Files</button>
+                                    <button type="button" class="docx-tab-btn" data-tab="folders" onclick="switchDocxTab('folders')">Folders</button>
+                                    <button type="button" class="docx-tab-btn" data-tab="starred" onclick="switchDocxTab('starred')">Starred</button>
+                                </div>
+                                <div class="docx-view-mode-toggles">
+                                    <button type="button" class="docx-view-btn" id="docxViewGrid" onclick="setDocxViewMode('grid')" title="Grid View"><i class="fas fa-th-large"></i></button>
+                                    <button type="button" class="docx-view-btn active" id="docxViewList" onclick="setDocxViewMode('list')" title="List View"><i class="fas fa-list"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="docx-table-container">
+                                <table class="docx-files-table" id="docxFilesTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-chk">
+                                                <label class="docx-chk-label">
+                                                    <input type="checkbox" id="docxMasterCheck" onchange="toggleSelectAllDocx(this.checked)">
+                                                    <span class="docx-chk-box"></span>
+                                                </label>
+                                            </th>
+                                            <th class="col-name" onclick="sortDocxFiles('name')">Name <i class="fas fa-sort sort-icon"></i></th>
+                                            <th class="col-date" onclick="sortDocxFiles('date')">Modified <i class="fas fa-sort sort-icon"></i></th>
+                                            <th class="col-size" onclick="sortDocxFiles('size')">Size <i class="fas fa-sort sort-icon"></i></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="docxTableBody">
+                                        <!-- Dynamic rows generated by JS -->
+                                    </tbody>
+                                </table>
+                                <div id="docxEmptyState" class="docx-empty-state" style="display: none;">
+                                    <i class="far fa-file-word"></i>
+                                    <p>No DOCX documents found</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Live Document Preview -->
+                        <div class="docx-preview-panel">
+                            <div class="docx-preview-header">
+                                <div class="docx-preview-title" id="docxPreviewHeaderTitle">
+                                    Preview — Project_Report.docx
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <button type="button" class="docx-btn-icon" onclick="openSelectedDocxInEditor()" title="Open in DOCX Editor">
+                                        <i class="fas fa-file-word"></i>
+                                    </button>
+                                    <button type="button" class="docx-btn-icon" onclick="toggleDocxFullscreenPreview()" title="Expand Fullscreen">
+                                        <i class="fas fa-up-right-and-down-left-from-center"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="docx-preview-toolbar">
+                                <div class="docx-prev-pager">
+                                    <button type="button" class="docx-tool-btn" onclick="prevDocxPreviewPage()"><i class="fas fa-chevron-left"></i></button>
+                                    <span id="docxPageCounter">1 / 12</span>
+                                    <button type="button" class="docx-tool-btn" onclick="nextDocxPreviewPage()"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="docx-prev-zoom">
+                                    <button type="button" class="docx-tool-btn" onclick="zoomDocxPreview(-10)"><i class="fas fa-minus"></i></button>
+                                    <span id="docxZoomVal">100%</span>
+                                    <button type="button" class="docx-tool-btn" onclick="zoomDocxPreview(10)"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <div class="docx-prev-actions">
+                                    <button type="button" class="docx-tool-btn" onclick="fitDocxPreview()" title="Fit to width"><i class="fas fa-expand"></i></button>
+                                    <button type="button" class="docx-tool-btn" onclick="toggleDocxFullscreenPreview()" title="Fullscreen"><i class="fas fa-expand-arrows-alt"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="docx-preview-stage-container" id="docxPreviewStageContainer">
+                                <div class="docx-preview-page-canvas" id="docxPreviewPageCanvas">
+                                    <div class="docx-page-corner-accent"></div>
+                                    <div id="docxPreviewRenderContent" class="docx-rendered-page-body">
+                                        <!-- Rendered DOCX content dynamically injected -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Inspector Panel -->
+                        <div class="docx-inspector-panel">
+                            <div class="docx-insp-header">
+                                <div class="docx-insp-icon-box">
+                                    <span class="docx-w-letter">W</span>
+                                </div>
+                                <div class="docx-insp-title-box">
+                                    <h3 id="docxInspFileName">Project_Report.docx</h3>
+                                </div>
+                                <span class="docx-insp-size-badge" id="docxInspFileSize">245 KB</span>
+                            </div>
+
+                            <div class="docx-insp-nav-tabs">
+                                <button type="button" class="docx-insp-tab active" data-tab="details" onclick="switchDocxInspTab('details')">Details</button>
+                                <button type="button" class="docx-insp-tab" data-tab="actions" onclick="switchDocxInspTab('actions')">Actions</button>
+                                <button type="button" class="docx-insp-tab" data-tab="ai" onclick="switchDocxInspTab('ai')">AI Tools</button>
+                                <button type="button" class="docx-insp-tab" data-tab="versions" onclick="switchDocxInspTab('versions')">Versions</button>
+                            </div>
+
+                            <!-- Details Tab -->
+                            <div class="docx-insp-tab-content" id="docxInspTabDetails">
+                                <div class="docx-meta-list">
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Type:</span>
+                                        <span class="docx-meta-val" id="docxMetaType">DOCX Document</span>
+                                    </div>
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Size:</span>
+                                        <span class="docx-meta-val" id="docxMetaSize">245 KB</span>
+                                    </div>
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Created:</span>
+                                        <span class="docx-meta-val" id="docxMetaCreated">20 Jun 2026, 09:12 AM</span>
+                                    </div>
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Modified:</span>
+                                        <span class="docx-meta-val" id="docxMetaModified">28 Jun 2026, 10:24 AM</span>
+                                    </div>
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Location:</span>
+                                        <span class="docx-meta-val" id="docxMetaLocation">/Documents</span>
+                                    </div>
+                                    <div class="docx-meta-row">
+                                        <span class="docx-meta-label">Status:</span>
+                                        <span class="docx-meta-val" id="docxMetaStatus">
+                                            <span class="docx-status-safe"><span class="status-dot"></span> Safe</span>
+                                        </span>
+                                    </div>
+                                    <div class="docx-meta-row docx-tags-meta-row">
+                                        <span class="docx-meta-label">Tags:</span>
+                                        <div class="docx-tags-wrap">
+                                            <button type="button" class="btn-add-docx-tag" onclick="promptAddDocxTag()">
+                                                <i class="fas fa-plus"></i> Add tag
+                                            </button>
+                                            <div class="docx-tag-chips" id="docxTagChips">
+                                                <!-- Dynamic tags -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="docx-desc-section">
+                                    <div class="docx-desc-header">
+                                        <span>Description:</span>
+                                        <button type="button" class="btn-edit-desc" onclick="toggleDocxDescEdit()"><i class="fas fa-pencil-alt"></i></button>
+                                    </div>
+                                    <div class="docx-desc-box" id="docxDescBox" onclick="toggleDocxDescEdit()">Final year project report draft.</div>
+                                    <div class="docx-desc-edit-wrap" id="docxDescEditWrap" style="display: none;">
+                                        <textarea id="docxDescInput" rows="2" class="docx-desc-textarea" placeholder="Add a document description..."></textarea>
+                                        <div class="docx-desc-actions">
+                                            <button type="button" class="btn-desc-cancel" onclick="cancelDocxDescEdit()">Cancel</button>
+                                            <button type="button" class="btn-desc-save" onclick="saveDocxDescEdit()">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions Tab -->
+                            <div class="docx-insp-tab-content" id="docxInspTabActions" style="display: none;">
+                                <div class="docx-actions-list">
+                                    <button type="button" class="docx-action-tile" onclick="openSelectedDocxInEditor()">
+                                        <div class="docx-tile-icon"><i class="far fa-edit"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Edit in Document Editor</h4>
+                                            <p>Open full WYSIWYG editor with live save</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile" onclick="downloadSelectedDocx()">
+                                        <div class="docx-tile-icon"><i class="fas fa-download"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Download .docx</h4>
+                                            <p>Save copy directly to your device</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile" onclick="convertSelectedDocxToPdf()">
+                                        <div class="docx-tile-icon"><i class="fas fa-file-pdf"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Convert to PDF</h4>
+                                            <p>Generate high-fidelity PDF output</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile" onclick="protectSelectedDocx()">
+                                        <div class="docx-tile-icon"><i class="fas fa-shield-alt"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Protect Document</h4>
+                                            <p>Encrypt and add password protection</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile" onclick="copySelectedDocx()">
+                                        <div class="docx-tile-icon"><i class="far fa-copy"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Duplicate Document</h4>
+                                            <p>Create a backup or cloned copy</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile" onclick="moveSelectedDocx()">
+                                        <div class="docx-tile-icon"><i class="fas fa-folder-tree"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Move to Folder</h4>
+                                            <p>Organize into custom folders</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" class="docx-action-tile docx-tile-danger" onclick="deleteSelectedDocx()">
+                                        <div class="docx-tile-icon"><i class="far fa-trash-alt"></i></div>
+                                        <div class="docx-tile-info">
+                                            <h4>Delete Document</h4>
+                                            <p>Remove permanently from workspace</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- AI Tools Tab -->
+                            <div class="docx-insp-tab-content" id="docxInspTabAi" style="display: none;">
+                                <div class="docx-ai-hub">
+                                    <div class="docx-ai-card">
+                                        <div class="docx-ai-badge"><i class="fas fa-wand-magic-sparkles"></i> AI Summarizer</div>
+                                        <p>Generate a concise bulleted summary of this document instantly.</p>
+                                        <button type="button" class="btn-ai-run" onclick="aiSummarizeSelectedDocx()">Summarize Document</button>
+                                        <div class="docx-ai-output" id="docxAiSummaryOutput" style="display: none;"></div>
+                                    </div>
+                                    <div class="docx-ai-card">
+                                        <div class="docx-ai-badge"><i class="fas fa-check-double"></i> Grammar & Tone Polish</div>
+                                        <p>Check spelling, optimize tone, and improve document readability.</p>
+                                        <button type="button" class="btn-ai-run" onclick="aiPolishSelectedDocx()">Analyze & Polish</button>
+                                    </div>
+                                    <div class="docx-ai-card">
+                                        <div class="docx-ai-badge"><i class="fas fa-list-check"></i> Key Takeaways & Action Items</div>
+                                        <p>Extract decisions, deadlines, and action items automatically.</p>
+                                        <button type="button" class="btn-ai-run" onclick="aiExtractTakeawaysSelectedDocx()">Extract Takeaways</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Versions Tab -->
+                            <div class="docx-insp-tab-content" id="docxInspTabVersions" style="display: none;">
+                                <div class="docx-version-timeline">
+                                    <div class="docx-version-item active">
+                                        <div class="docx-version-dot current"></div>
+                                        <div class="docx-version-details">
+                                            <div class="docx-version-title">v1.2 (Current Version)</div>
+                                            <div class="docx-version-date">Today, 10:24 AM by You</div>
+                                            <div class="docx-version-note">Added executive summary and feature bullet points</div>
+                                        </div>
+                                    </div>
+                                    <div class="docx-version-item">
+                                        <div class="docx-version-dot"></div>
+                                        <div class="docx-version-details">
+                                            <div class="docx-version-title">v1.1 (Auto-save)</div>
+                                            <div class="docx-version-date">Yesterday, 04:15 PM</div>
+                                            <div class="docx-version-note">Updated section headings and layout formatting</div>
+                                            <button type="button" class="btn-version-restore" onclick="restoreDocxVersion('v1.1')">Restore</button>
+                                        </div>
+                                    </div>
+                                    <div class="docx-version-item">
+                                        <div class="docx-version-dot"></div>
+                                        <div class="docx-version-details">
+                                            <div class="docx-version-title">v1.0 (Initial Draft)</div>
+                                            <div class="docx-version-date">20 Jun 2026, 09:12 AM</div>
+                                            <div class="docx-version-note">Created initial document outline</div>
+                                            <button type="button" class="btn-version-restore" onclick="restoreDocxVersion('v1.0')">Restore</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================================================= -->
+                <!-- MS WORD DOCX EDITOR WORKSPACE (NEUROCORE OFFICE) -->
+                <!-- ======================================================= -->
+                <section id="docx-editor-section" class="content-section">
+                    <div class="docx-editor-workspace">
+                        <!-- Top Header / Title Bar -->
+                        <div class="docx-ws-topbar">
+                            <div class="docx-ws-brand-group">
+                                <div class="docx-ws-logo-pill" title="NeuroCore Office">
+                                    <span class="docx-ws-logo-n">N</span>
+                                </div>
+                                <div class="docx-ws-brand-title">NeuroCore Office</div>
+                                <span class="docx-ws-doc-badge">Document Editor</span>
+                            </div>
+
+                            <div class="docx-ws-title-group">
+                                <div class="docx-ws-doc-name-wrap">
+                                    <input type="text" id="wordDocTitleInput" class="docx-ws-title-input" value="Project_Proposal_2026.docx" title="Click to rename document" onchange="handleDocTitleRename(this.value)">
+                                    <button type="button" class="docx-ws-star-btn" id="wordStarBtn" onclick="toggleWordDocStarred()" title="Star document">
+                                        <i class="far fa-star" id="wordStarIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="docx-ws-sync-status">
+                                    <span class="docx-ws-sync-pill"><i class="fas fa-cloud"></i> Saved to My Drive</span>
+                                    <span class="docx-ws-autosave-pill" id="wordAutoSaveBadge"><i class="fas fa-rotate-right"></i> <span id="docxAutosaveLabel">Autosaved 2 min ago</span></span>
+                                </div>
+                            </div>
+
+                            <div class="docx-ws-actions-right">
+                                <button type="button" class="docx-ws-icon-btn" onclick="wordReturnToDocxList()" title="Return to Document List">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" class="docx-ws-icon-btn" onclick="wordExecCmd('undo')" title="Undo (Ctrl+Z)">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button type="button" class="docx-ws-icon-btn" onclick="wordExecCmd('redo')" title="Redo (Ctrl+Y)">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button type="button" class="docx-ws-share-btn" onclick="openDocxShareModal()" title="Share Document">
+                                    <i class="fas fa-user-plus"></i> Share
+                                </button>
+                                <div class="docx-ws-user-chip" onclick="openProfileSettingsModal()" title="User Profile">
+                                    <div class="docx-ws-avatar">N</div>
+                                    <span class="docx-ws-user-name">Neuro User</span>
+                                </div>
+                                <button type="button" class="docx-ws-icon-btn" onclick="openDocxHelpModal()" title="Help & Shortcuts">
+                                    <i class="far fa-question-circle"></i>
+                                </button>
+                                <button type="button" class="docx-ws-icon-btn" onclick="openProfileSettingsModal()" title="Settings">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ribbon Navigation Tabs Bar -->
+                        <div class="docx-ws-ribbon-tabs">
+                            <button type="button" class="docx-ribbon-tab" data-tab="file" onclick="switchWordRibbonTab('file')">File</button>
+                            <button type="button" class="docx-ribbon-tab active" data-tab="home" onclick="switchWordRibbonTab('home')">Home</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="insert" onclick="switchWordRibbonTab('insert')">Insert</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="layout" onclick="switchWordRibbonTab('layout')">Layout</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="references" onclick="switchWordRibbonTab('references')">References</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="review" onclick="switchWordRibbonTab('review')">Review</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="view" onclick="switchWordRibbonTab('view')">View</button>
+                            <button type="button" class="docx-ribbon-tab" data-tab="help" onclick="switchWordRibbonTab('help')">Help</button>
+                        </div>
+
+                        <!-- Ribbon Toolbar Content -->
+                        <div class="docx-ws-ribbon-toolbar">
+                            <!-- HOME TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonHome" style="display: flex;">
+                                <!-- Clipboard Group -->
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordPasteText()" title="Paste Content">
+                                            <i class="far fa-clipboard"></i>
+                                            <span>Paste</span>
+                                        </button>
+                                        <div class="docx-ribbon-stack-col">
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordCutSelection()" title="Cut (Ctrl+X)"><i class="fas fa-cut"></i> Cut</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordCopySelection()" title="Copy (Ctrl+C)"><i class="far fa-copy"></i> Copy</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordFormatPainter()" title="Format Painter"><i class="fas fa-paint-brush"></i> Format Painter</button>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Clipboard</span>
+                                </div>
+
+                                <!-- Font Group -->
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <div class="docx-ribbon-stack-vertical">
+                                            <div class="docx-ribbon-row">
+                                                <select class="docx-font-select" id="wordFontFamilySelect" onchange="wordApplyFontFamily(this.value)">
+                                                    <option value="Inter" selected>Inter</option>
+                                                    <option value="Calibri">Calibri</option>
+                                                    <option value="Arial">Arial</option>
+                                                    <option value="Times New Roman">Times New Roman</option>
+                                                    <option value="Georgia">Georgia</option>
+                                                    <option value="Roboto">Roboto</option>
+                                                    <option value="Outfit">Outfit</option>
+                                                    <option value="Courier New">Courier New</option>
+                                                </select>
+                                                <select class="docx-size-select" id="wordFontSizeSelect" onchange="wordApplyFontSize(this.value)">
+                                                    <option value="8">8</option>
+                                                    <option value="9">9</option>
+                                                    <option value="10">10</option>
+                                                    <option value="11" selected>11</option>
+                                                    <option value="12">12</option>
+                                                    <option value="14">14</option>
+                                                    <option value="16">16</option>
+                                                    <option value="18">18</option>
+                                                    <option value="20">20</option>
+                                                    <option value="24">24</option>
+                                                    <option value="28">28</option>
+                                                    <option value="36">36</option>
+                                                </select>
+                                                <button type="button" class="docx-btn-tool" onclick="wordChangeFontSize(1)" title="Grow Font">A<sup>▲</sup></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordChangeFontSize(-1)" title="Shrink Font">A<sub>▼</sub></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordToggleCaseDropdown()" title="Change Case">Aa</button>
+                                            </div>
+                                            <div class="docx-ribbon-row">
+                                                <button type="button" class="docx-btn-tool" id="wordBtnBold" onclick="wordExecCmd('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnItalic" onclick="wordExecCmd('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnUnderline" onclick="wordExecCmd('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnStrike" onclick="wordExecCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('subscript')" title="Subscript">X<sub>2</sub></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('superscript')" title="Superscript">X<sup>2</sup></button>
+                                                <div class="docx-color-picker-wrapper" title="Highlight Color">
+                                                    <span class="docx-color-indicator highlight-ind">A</span>
+                                                    <input type="color" value="#ffff00" onchange="wordApplyHighlight(this.value)">
+                                                </div>
+                                                <div class="docx-color-picker-wrapper" title="Font Color">
+                                                    <span class="docx-color-indicator font-color-ind">A</span>
+                                                    <input type="color" value="#000000" onchange="wordApplyFontColor(this.value)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Font</span>
+                                </div>
+
+                                <!-- Paragraph Group -->
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <div class="docx-ribbon-stack-vertical">
+                                            <div class="docx-ribbon-row">
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('insertUnorderedList')" title="Bullet List"><i class="fas fa-list-ul"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('insertOrderedList')" title="Numbered List"><i class="fas fa-list-ol"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordInsertMultilevelList()" title="Multilevel List"><i class="fas fa-stream"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('outdent')" title="Decrease Indent"><i class="fas fa-outdent"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordExecCmd('indent')" title="Increase Indent"><i class="fas fa-indent"></i></button>
+                                            </div>
+                                            <div class="docx-ribbon-row">
+                                                <button type="button" class="docx-btn-tool active" id="wordBtnAlignLeft" onclick="wordExecCmd('justifyLeft')" title="Align Left"><i class="fas fa-align-left"></i></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnAlignCenter" onclick="wordExecCmd('justifyCenter')" title="Center"><i class="fas fa-align-center"></i></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnAlignRight" onclick="wordExecCmd('justifyRight')" title="Align Right"><i class="fas fa-align-right"></i></button>
+                                                <button type="button" class="docx-btn-tool" id="wordBtnAlignJustify" onclick="wordExecCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordApplyLineSpacing('1.5')" title="Line Spacing (1.5)"><i class="fas fa-arrows-alt-v"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordInsertQuote()" title="Shading / Quote"><i class="fas fa-fill-drip"></i></button>
+                                                <button type="button" class="docx-btn-tool" onclick="wordInsertCallout()" title="Borders / Callout"><i class="fas fa-border-all"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Paragraph</span>
+                                </div>
+
+                                <!-- Styles Group -->
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <div class="docx-styles-gallery">
+                                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('p')">Normal</button>
+                                            <button type="button" class="docx-style-pill active" onclick="wordApplyStyle('h1')">Heading 1</button>
+                                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('h2')">Heading 2</button>
+                                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('h3')">Heading 3</button>
+                                            <button type="button" class="docx-style-pill" onclick="wordApplyStyle('title')">Title</button>
+                                            <div class="docx-style-arrows">
+                                                <button type="button" class="docx-style-arrow-btn" onclick="wordScrollStyles(-1)"><i class="fas fa-chevron-up"></i></button>
+                                                <button type="button" class="docx-style-arrow-btn" onclick="wordScrollStyles(1)"><i class="fas fa-chevron-down"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Styles</span>
+                                </div>
+
+                                <!-- Editing Group -->
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <div class="docx-ribbon-stack-col">
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="openWordFindReplaceModal('find')"><i class="fas fa-search"></i> Find</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="openWordFindReplaceModal('replace')"><i class="fas fa-sync-alt"></i> Replace</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordExecCmd('selectAll')"><i class="far fa-object-group"></i> Select</button>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Editing</span>
+                                </div>
+                            </div>
+
+                            <!-- FILE TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonFile" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordCreateNewBlankDoc()">
+                                            <i class="far fa-file"></i>
+                                            <span>New</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordReturnToDocxList()">
+                                            <i class="far fa-folder-open"></i>
+                                            <span>Open</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="saveWordDocument()">
+                                            <i class="far fa-save"></i>
+                                            <span>Save</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordExportDocx()">
+                                            <i class="fas fa-download"></i>
+                                            <span>Export .docx</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordExportPdf()">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>Export PDF</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="window.print()">
+                                            <i class="fas fa-print"></i>
+                                            <span>Print</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">File Operations</span>
+                                </div>
+                            </div>
+
+                            <!-- INSERT TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonInsert" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertTableDialog()">
+                                            <i class="fas fa-table"></i>
+                                            <span>Table</span>
+                                        </button>
+                                        <div class="docx-ribbon-stack-col">
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordAddTableRow()"><i class="fas fa-plus"></i> Add Row</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordAddTableCol()"><i class="fas fa-plus"></i> Add Column</button>
+                                            <button type="button" class="docx-ribbon-micro-btn" onclick="wordDeleteTable()"><i class="fas fa-trash-alt"></i> Delete Table</button>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Tables</span>
+                                </div>
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordPromptInsertImage()">
+                                            <i class="far fa-image"></i>
+                                            <span>Picture</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertCallout()">
+                                            <i class="far fa-comment-alt"></i>
+                                            <span>Callout</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertHorizontalRule()">
+                                            <i class="fas fa-minus"></i>
+                                            <span>Divider</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Illustrations</span>
+                                </div>
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertDateTime()">
+                                            <i class="far fa-calendar-check"></i>
+                                            <span>Date/Time</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="openWordSymbolsModal()">
+                                            <i class="fas fa-icons"></i>
+                                            <span>Symbol</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Symbols</span>
+                                </div>
+                            </div>
+
+                            <!-- LAYOUT TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonLayout" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <div class="docx-ribbon-stack-col">
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <label style="font-size: 11px; color: #64748b; min-width: 50px;">Margins:</label>
+                                                <select class="docx-insp-select" onchange="wordApplyMargins(this.value)">
+                                                    <option value="normal" selected>Normal (1")</option>
+                                                    <option value="narrow">Narrow (0.5")</option>
+                                                    <option value="moderate">Moderate</option>
+                                                    <option value="wide">Wide</option>
+                                                </select>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <label style="font-size: 11px; color: #64748b; min-width: 50px;">Size:</label>
+                                                <select class="docx-insp-select" onchange="wordApplyPaperSize(this.value)">
+                                                    <option value="a4" selected>A4 (8.27" x 11.69")</option>
+                                                    <option value="letter">Letter (8.5" x 11")</option>
+                                                    <option value="legal">Legal (8.5" x 14")</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Page Setup</span>
+                                </div>
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetOrientation('portrait')">
+                                            <i class="far fa-file"></i>
+                                            <span>Portrait</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetOrientation('landscape')">
+                                            <i class="far fa-file" style="transform: rotate(90deg);"></i>
+                                            <span>Landscape</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Orientation</span>
+                                </div>
+                            </div>
+
+                            <!-- REFERENCES TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonReferences" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertTableOfContents()">
+                                            <i class="fas fa-list-ol"></i>
+                                            <span>Table of Contents</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertFootnote()">
+                                            <i class="fas fa-asterisk"></i>
+                                            <span>Footnote</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordInsertCitation()">
+                                            <i class="fas fa-quote-right"></i>
+                                            <span>Citation</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">References</span>
+                                </div>
+                            </div>
+
+                            <!-- REVIEW TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonReview" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordRunSpellCheck()">
+                                            <i class="fas fa-spell-check"></i>
+                                            <span>Spelling Check</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordShowWordCountStats()">
+                                            <i class="fas fa-calculator"></i>
+                                            <span>Word Count</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleTrackChanges()">
+                                            <i class="far fa-edit"></i>
+                                            <span>Track Changes</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Proofing & Tracking</span>
+                                </div>
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="runDocxAiQuickAction('improve')">
+                                            <i class="fas fa-magic"></i>
+                                            <span>AI Polish</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="runDocxAiQuickAction('translate')">
+                                            <i class="fas fa-language"></i>
+                                            <span>Translate</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Language & AI</span>
+                                </div>
+                            </div>
+
+                            <!-- VIEW TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonView" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('print')">
+                                            <i class="far fa-file"></i>
+                                            <span>Print Layout</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('web')">
+                                            <i class="fas fa-globe"></i>
+                                            <span>Web Layout</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="wordSetViewLayout('read')">
+                                            <i class="fas fa-book-open"></i>
+                                            <span>Read Mode</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Views</span>
+                                </div>
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleDocxOutlinePanel()">
+                                            <i class="fas fa-bars-staggered"></i>
+                                            <span>Outline Pane</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleWordRulers()">
+                                            <i class="fas fa-ruler-combined"></i>
+                                            <span>Ruler</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="toggleWordFocusMode()">
+                                            <i class="fas fa-expand"></i>
+                                            <span>Focus Mode</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Show/Hide</span>
+                                </div>
+                            </div>
+
+                            <!-- HELP TAB -->
+                            <div class="docx-ribbon-pane" id="wordRibbonHelp" style="display: none;">
+                                <div class="docx-ribbon-group">
+                                    <div class="docx-ribbon-group-content">
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="openDocxHelpModal()">
+                                            <i class="far fa-question-circle"></i>
+                                            <span>Help Guide</span>
+                                        </button>
+                                        <button type="button" class="docx-ribbon-big-btn" onclick="openDocxShortcutsModal()">
+                                            <i class="fas fa-keyboard"></i>
+                                            <span>Shortcuts</span>
+                                        </button>
+                                    </div>
+                                    <span class="docx-ribbon-group-title">Support</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tri-Panel Workspace Area -->
+                        <div class="docx-workspace-main">
+                            <!-- Left Collapsible Outline Panel -->
+                            <div class="docx-outline-panel" id="docxOutlinePanel">
+                                <div class="docx-outline-header">
+                                    <h3>Outline</h3>
+                                    <button type="button" class="docx-outline-close-btn" onclick="toggleDocxOutlinePanel()" title="Close Outline">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="docx-outline-doc-title" id="docxOutlineDocTitle">Project Proposal 2026</div>
+                                <div class="docx-outline-tree" id="docxOutlineTree">
+                                    <!-- Populated automatically from page headings -->
+                                    <div class="docx-outline-item active" onclick="scrollToDocxHeading('sec-1')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">1. Executive Summary</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-2')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">2. Introduction</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-2-1')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">2.1 Background</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-2-2')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">2.2 Problem Statement</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-2-3')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">2.3 Objectives</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-3')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">3. Proposed Solution</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-3-1')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">3.1 Overview</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-3-2')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">3.2 Key Features</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-3-3')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">3.3 Technology Stack</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-4')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">4. Implementation Plan</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-4-1')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">4.1 Timeline</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-4-2')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">4.2 Resources</span>
+                                    </div>
+                                    <div class="docx-outline-item docx-outline-sub" onclick="scrollToDocxHeading('sec-4-3')">
+                                        <span class="docx-outline-drag"><i class="fas fa-circle-notch"></i></span>
+                                        <span class="docx-outline-text">4.3 Milestones</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-5')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">5. Budget Estimate</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-6')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">6. Risk Analysis</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-7')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">7. Conclusion</span>
+                                    </div>
+                                    <div class="docx-outline-item" onclick="scrollToDocxHeading('sec-8')">
+                                        <span class="docx-outline-drag"><i class="fas fa-grip-lines-vertical"></i></span>
+                                        <span class="docx-outline-text">8. Appendices</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Center Stage: Horizontal Ruler + Vertical Ruler + Page Canvas -->
+                            <div class="docx-center-stage" id="docxCenterStage">
+                                <!-- Top Horizontal Ruler -->
+                                <div class="docx-ruler-horizontal" id="docxRulerHorizontal">
+                                    <div class="docx-ruler-track">
+                                        <span class="ruler-tick">1</span>
+                                        <span class="ruler-tick">2</span>
+                                        <span class="ruler-tick">3</span>
+                                        <span class="ruler-tick">4</span>
+                                        <span class="ruler-tick">5</span>
+                                        <span class="ruler-tick">6</span>
+                                        <span class="ruler-tick">7</span>
+                                        <span class="ruler-tick">8</span>
+                                        <span class="ruler-tick">9</span>
+                                        <span class="ruler-tick">10</span>
+                                        <span class="ruler-tick">11</span>
+                                        <span class="ruler-tick">12</span>
+                                        <span class="ruler-tick">13</span>
+                                        <span class="ruler-tick">14</span>
+                                        <span class="ruler-tick">15</span>
+                                        <span class="ruler-tick">16</span>
+                                        <span class="ruler-tick">17</span>
+                                        <span class="ruler-tick">18</span>
+                                    </div>
+                                </div>
+
+                                <div class="docx-stage-viewport" id="docxStageViewport">
+                                    <!-- Left Vertical Ruler -->
+                                    <div class="docx-ruler-vertical" id="docxRulerVertical">
+                                        <div class="docx-ruler-vert-track">
+                                            <span class="ruler-vert-tick">1</span>
+                                            <span class="ruler-vert-tick">2</span>
+                                            <span class="ruler-vert-tick">3</span>
+                                            <span class="ruler-vert-tick">4</span>
+                                            <span class="ruler-vert-tick">5</span>
+                                            <span class="ruler-vert-tick">6</span>
+                                            <span class="ruler-vert-tick">7</span>
+                                            <span class="ruler-vert-tick">8</span>
+                                            <span class="ruler-vert-tick">9</span>
+                                            <span class="ruler-vert-tick">10</span>
+                                            <span class="ruler-vert-tick">11</span>
+                                            <span class="ruler-vert-tick">12</span>
+                                            <span class="ruler-vert-tick">13</span>
+                                            <span class="ruler-vert-tick">14</span>
+                                            <span class="ruler-vert-tick">15</span>
+                                            <span class="ruler-vert-tick">16</span>
+                                            <span class="ruler-vert-tick">17</span>
+                                            <span class="ruler-vert-tick">18</span>
+                                            <span class="ruler-vert-tick">19</span>
+                                            <span class="ruler-vert-tick">20</span>
+                                            <span class="ruler-vert-tick">21</span>
+                                            <span class="ruler-vert-tick">22</span>
+                                            <span class="ruler-vert-tick">23</span>
+                                            <span class="ruler-vert-tick">24</span>
+                                            <span class="ruler-vert-tick">25</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Page Canvas Wrapper -->
+                                    <div class="docx-page-canvas-wrapper" id="docxPageCanvasWrapper">
+                                        <div class="docx-page-sheet" id="wordPageSheet" contenteditable="true" spellcheck="true" oninput="handleWordEditorInput()" onkeyup="handleWordEditorSelection()" onmouseup="handleWordEditorSelection()">
+                                            <!-- Document Header Banner -->
+                                            <div class="docx-doc-header-banner" contenteditable="false">
+                                                <div class="docx-header-left">
+                                                    <span class="docx-header-logo-n">N</span>
+                                                    <span class="docx-header-brand">NeuroCore Office</span>
+                                                </div>
+                                                <div class="docx-header-right">
+                                                    <span class="docx-header-title">Project Proposal 2026</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Document Body Content matching reference image -->
+                                            <h1 id="sec-1">1. Executive Summary</h1>
+                                            <p>This proposal outlines our approach to developing an AI-powered document management system for streamlined business operations. The solution aims to improve <mark class="doc-text-highlight">productivity, collaboration, and data security</mark>.</p>
+
+                                            <h1 id="sec-2">2. Introduction</h1>
+                                            <h2 id="sec-2-1">2.1 Background</h2>
+                                            <p>Organizations today face challenges in managing documents efficiently across multiple platforms. Our solution, NeuroCore Office, integrates advanced AI capabilities with robust document management features.</p>
+
+                                            <h2 id="sec-2-2">2.2 Problem Statement</h2>
+                                            <p>Existing systems are either too complex, lack automation, or fail to provide adequate security and collaboration tools.</p>
+
+                                            <h2 id="sec-2-3">2.3 Objectives</h2>
+                                            <ul>
+                                                <li>Centralize document management.</li>
+                                                <li>Improve collaboration and accessibility.</li>
+                                                <li>Ensure data security and compliance.</li>
+                                                <li>Leverage AI for smarter document processing.</li>
+                                            </ul>
+
+                                            <h1 id="sec-3">3. Proposed Solution</h1>
+                                            <h2 id="sec-3-1">3.1 Overview</h2>
+                                            <p>NeuroCore Office delivers an integrated suite combining intelligent parsing, OpenXML editing, and automated classification into a unified, responsive interface.</p>
+
+                                            <h2 id="sec-3-2">3.2 Key Features</h2>
+                                            <p>Real-time collaboration, instant format conversions, AI summarization, and granular permission controls.</p>
+
+                                            <h2 id="sec-3-3">3.3 Technology Stack</h2>
+                                            <p>Modern web technologies paired with native server-side processing engines for high fidelity document preservation.</p>
+
+                                            <h1 id="sec-4">4. Implementation Plan</h1>
+                                            <h2 id="sec-4-1">4.1 Timeline</h2>
+                                            <p>Phased rollout spanning 12 weeks with milestone validations across alpha, beta, and general availability.</p>
+
+                                            <h2 id="sec-4-2">4.2 Resources</h2>
+                                            <p>Dedicated engineering, product design, and continuous security compliance verification teams.</p>
+
+                                            <h2 id="sec-4-3">4.3 Milestones</h2>
+                                            <p>Alpha release in Week 4, Beta in Week 8, and General Availability in Week 12.</p>
+
+                                            <h1 id="sec-5">5. Budget Estimate</h1>
+                                            <p>Allocated budget covers development, compute infrastructure, automated testing, and third-party security audits.</p>
+
+                                            <h1 id="sec-6">6. Risk Analysis</h1>
+                                            <p>Comprehensive mitigation strategies covering data redundancy, end-to-end encryption, and zero-downtime migrations.</p>
+
+                                            <h1 id="sec-7">7. Conclusion</h1>
+                                            <p>NeuroCore Office sets a new standard for modern productivity, empowering teams to craft, organize, and automate documents seamlessly.</p>
+
+                                            <h1 id="sec-8">8. Appendices</h1>
+                                            <p>Technical architecture specifications, compliance frameworks, and benchmark performance datasets.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Formatting & Inspector Panel -->
+                            <div class="docx-inspector-panel" id="docxInspectorPanel">
+                                <div class="docx-insp-tabs">
+                                    <button type="button" class="docx-insp-tab active" data-tab="format" onclick="switchDocxInspectorTab('format')">Format</button>
+                                    <button type="button" class="docx-insp-tab" data-tab="styles" onclick="switchDocxInspectorTab('styles')">Styles</button>
+                                    <button type="button" class="docx-insp-tab" data-tab="ai" onclick="switchDocxInspectorTab('ai')">AI Assistant</button>
+                                </div>
+
+                                <div class="docx-insp-body">
+                                    <!-- FORMAT TAB PANE -->
+                                    <div class="docx-insp-pane" id="docxInspFormat" style="display: block;">
+                                        <!-- Text Section -->
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title">Text</div>
+                                            <div class="docx-insp-row">
+                                                <select class="docx-insp-select font-family" id="inspFontFamily" onchange="wordApplyFontFamily(this.value)">
+                                                    <option value="Inter" selected>Inter</option>
+                                                    <option value="Calibri">Calibri</option>
+                                                    <option value="Arial">Arial</option>
+                                                    <option value="Times New Roman">Times New Roman</option>
+                                                </select>
+                                                <select class="docx-insp-select font-size" id="inspFontSize" onchange="wordApplyFontSize(this.value)">
+                                                    <option value="11" selected>11</option>
+                                                    <option value="12">12</option>
+                                                    <option value="14">14</option>
+                                                    <option value="16">16</option>
+                                                    <option value="18">18</option>
+                                                </select>
+                                                <div class="docx-insp-color-box" title="Text Color">
+                                                    <input type="color" value="#000000" id="inspFontColor" onchange="wordApplyFontColor(this.value)">
+                                                </div>
+                                            </div>
+                                            <div class="docx-insp-btn-row">
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnBold" onclick="wordExecCmd('bold')" title="Bold"><b>B</b></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnItalic" onclick="wordExecCmd('italic')" title="Italic"><i>I</i></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnUnderline" onclick="wordExecCmd('underline')" title="Underline"><u>U</u></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnStrike" onclick="wordExecCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('subscript')" title="Subscript">X<sub>2</sub></button>
+                                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('superscript')" title="Superscript">X<sup>2</sup></button>
+                                            </div>
+                                            <button type="button" class="docx-insp-clear-btn" onclick="wordExecCmd('removeFormat')">
+                                                <i class="fas fa-remove-format"></i> Clear Formatting
+                                            </button>
+                                        </div>
+
+                                        <!-- Paragraph Section -->
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title">Paragraph</div>
+                                            <div class="docx-insp-btn-row">
+                                                <button type="button" class="docx-insp-tool-btn active" id="inspBtnAlignLeft" onclick="wordExecCmd('justifyLeft')" title="Left"><i class="fas fa-align-left"></i></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignCenter" onclick="wordExecCmd('justifyCenter')" title="Center"><i class="fas fa-align-center"></i></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignRight" onclick="wordExecCmd('justifyRight')" title="Right"><i class="fas fa-align-right"></i></button>
+                                                <button type="button" class="docx-insp-tool-btn" id="inspBtnAlignJustify" onclick="wordExecCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></button>
+                                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('outdent')" title="Outdent"><i class="fas fa-outdent"></i></button>
+                                                <button type="button" class="docx-insp-tool-btn" onclick="wordExecCmd('indent')" title="Indent"><i class="fas fa-indent"></i></button>
+                                            </div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>Line Spacing</label>
+                                                <select class="docx-insp-select" id="inspLineSpacing" onchange="wordApplyLineSpacing(this.value)">
+                                                    <option value="1.0">1.0</option>
+                                                    <option value="1.15">1.15</option>
+                                                    <option value="1.5" selected>1.5</option>
+                                                    <option value="2.0">2.0</option>
+                                                </select>
+                                            </div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>Before</label>
+                                                <div class="docx-insp-unit-input">
+                                                    <input type="number" id="inspSpacingBefore" value="0" min="0" max="72" onchange="wordApplySpacingBefore(this.value)">
+                                                    <span>pt</span>
+                                                </div>
+                                            </div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>After</label>
+                                                <div class="docx-insp-unit-input">
+                                                    <input type="number" id="inspSpacingAfter" value="8" min="0" max="72" onchange="wordApplySpacingAfter(this.value)">
+                                                    <span>pt</span>
+                                                </div>
+                                            </div>
+                                            <label class="docx-insp-checkbox-row">
+                                                <input type="checkbox" id="inspNoParaSpace" onchange="wordToggleNoParaSpace(this.checked)">
+                                                <span>Don't add space between paragraphs</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- Page Section -->
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title">Page</div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>Margins</label>
+                                                <select class="docx-insp-select" id="inspMargins" onchange="wordApplyMargins(this.value)">
+                                                    <option value="normal" selected>Normal (1")</option>
+                                                    <option value="narrow">Narrow (0.5")</option>
+                                                    <option value="moderate">Moderate</option>
+                                                    <option value="wide">Wide</option>
+                                                </select>
+                                            </div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>Orientation</label>
+                                                <div class="docx-insp-orient-toggle">
+                                                    <button type="button" class="docx-orient-btn active" id="orientPortraitBtn" onclick="wordSetOrientation('portrait')" title="Portrait">
+                                                        <i class="far fa-file"></i>
+                                                    </button>
+                                                    <button type="button" class="docx-orient-btn" id="orientLandscapeBtn" onclick="wordSetOrientation('landscape')" title="Landscape">
+                                                        <i class="far fa-file" style="transform: rotate(90deg);"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="docx-insp-kv-row">
+                                                <label>Size</label>
+                                                <select class="docx-insp-select" id="inspPaperSize" onchange="wordApplyPaperSize(this.value)">
+                                                    <option value="a4" selected>A4 (8.27" x 11.69")</option>
+                                                    <option value="letter">Letter (8.5" x 11")</option>
+                                                    <option value="legal">Legal (8.5" x 14")</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="docx-insp-page-setup-btn" onclick="openWordPageSetupModal()">Page Setup</button>
+                                        </div>
+
+                                        <!-- Quick AI Tools Section -->
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title">Quick AI Tools</div>
+                                            <div class="docx-ai-tools-grid">
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('summarize')">
+                                                    <i class="far fa-file-alt"></i>
+                                                    <span>Summarize</span>
+                                                </button>
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('improve')">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                    <span>Improve Writing</span>
+                                                </button>
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('grammar')">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    <span>Fix Grammar</span>
+                                                </button>
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('shorter')">
+                                                    <i class="fas fa-compress-alt"></i>
+                                                    <span>Make Shorter</span>
+                                                </button>
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('translate')">
+                                                    <i class="fas fa-globe"></i>
+                                                    <span>Translate</span>
+                                                </button>
+                                                <button type="button" class="docx-ai-grid-btn" onclick="runDocxAiQuickAction('explain')">
+                                                    <i class="far fa-lightbulb"></i>
+                                                    <span>Explain</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- STYLES TAB PANE -->
+                                    <div class="docx-insp-pane" id="docxInspStyles" style="display: none;">
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title">Paragraph Styles</div>
+                                            <div class="docx-style-cards-stack">
+                                                <div class="docx-style-card active" onclick="wordApplyStyle('p')">
+                                                    <div class="docx-style-preview" style="font-size: 14px;">Normal Text</div>
+                                                    <span class="docx-style-sub">Default body paragraph (11pt Inter)</span>
+                                                </div>
+                                                <div class="docx-style-card" onclick="wordApplyStyle('h1')">
+                                                    <div class="docx-style-preview" style="font-size: 18px; font-weight: 700; color: #1e3a8a;">Heading 1</div>
+                                                    <span class="docx-style-sub">Section Title (22pt Bold)</span>
+                                                </div>
+                                                <div class="docx-style-card" onclick="wordApplyStyle('h2')">
+                                                    <div class="docx-style-preview" style="font-size: 16px; font-weight: 700; color: #2563eb;">Heading 2</div>
+                                                    <span class="docx-style-sub">Subsection Title (16pt SemiBold)</span>
+                                                </div>
+                                                <div class="docx-style-card" onclick="wordApplyStyle('h3')">
+                                                    <div class="docx-style-preview" style="font-size: 14px; font-weight: 600; color: #3b82f6;">Heading 3</div>
+                                                    <span class="docx-style-sub">Sub-item header (13pt)</span>
+                                                </div>
+                                                <div class="docx-style-card" onclick="wordInsertQuote()">
+                                                    <div class="docx-style-preview" style="font-style: italic; color: #475569; border-left: 3px solid #2563eb; padding-left: 8px;">Quote Block</div>
+                                                    <span class="docx-style-sub">Indented citation & highlight</span>
+                                                </div>
+                                                <div class="docx-style-card" onclick="wordInsertCallout()">
+                                                    <div class="docx-style-preview" style="background: #eff6ff; padding: 4px 8px; border-radius: 4px; color: #1e3a8a;">Callout Banner</div>
+                                                    <span class="docx-style-sub">Highlighted executive note</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- AI ASSISTANT TAB PANE -->
+                                    <div class="docx-insp-pane" id="docxInspAi" style="display: none;">
+                                        <div class="docx-insp-section">
+                                            <div class="docx-insp-section-title"><i class="fas fa-sparkles" style="color: #6366f1;"></i> AI Copilot</div>
+                                            <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">Ask Gemini to draft sections, summarize, or restructure content.</p>
+                                            <div class="docx-ai-prompt-wrap">
+                                                <textarea id="docxAiCustomPrompt" class="docx-ai-textarea" rows="3" placeholder="e.g., Draft a bulleted project roadmap for 2026..."></textarea>
+                                                <button type="button" class="docx-ai-send-btn" onclick="runDocxAiCustomPrompt()" id="docxAiSubmitBtn">
+                                                    <i class="fas fa-paper-plane"></i> Generate
+                                                </button>
+                                            </div>
+
+                                            <div class="docx-ai-chips-list">
+                                                <span class="docx-ai-chip" onclick="applyAiPromptChip('Draft Executive Summary')">✨ Draft Exec Summary</span>
+                                                <span class="docx-ai-chip" onclick="applyAiPromptChip('Add Objectives and Key Results table')">📊 Add OKRs</span>
+                                                <span class="docx-ai-chip" onclick="applyAiPromptChip('Make tone more formal and professional')">💼 Formal Tone</span>
+                                                <span class="docx-ai-chip" onclick="applyAiPromptChip('Generate FAQ section for proposal')">❓ Add FAQ</span>
+                                            </div>
+
+                                            <div id="docxAiResultBox" class="docx-ai-result-box" style="display: none;">
+                                                <div class="docx-ai-result-header">
+                                                    <span>AI Output</span>
+                                                    <button type="button" class="btn-micro" onclick="copyDocxAiResult()"><i class="far fa-copy"></i> Copy</button>
+                                                </div>
+                                                <div id="docxAiResultContent" class="docx-ai-result-content"></div>
+                                                <div class="docx-ai-result-actions">
+                                                    <button type="button" class="docx-btn-insert-ai" onclick="insertAiTextIntoDoc()"><i class="fas fa-plus"></i> Insert at Cursor</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Status Bar -->
+                        <div class="docx-ws-statusbar">
+                            <div class="docx-status-left">
+                                <span class="docx-status-metric" id="wordStatusPageCount">Page 1 of 12</span>
+                                <span class="docx-status-divider"></span>
+                                <span class="docx-status-metric" id="wordStatusWordCount">3456 words</span>
+                                <span class="docx-status-divider"></span>
+                                <select class="docx-status-lang-select" onchange="wordChangeLanguage(this.value)">
+                                    <option value="en-US" selected>English (United States)</option>
+                                    <option value="en-GB">English (United Kingdom)</option>
+                                    <option value="es-ES">Spanish</option>
+                                    <option value="fr-FR">French</option>
+                                    <option value="de-DE">German</option>
+                                </select>
+                                <button type="button" class="docx-status-track-btn active" id="docxTrackChangesBtn" onclick="toggleTrackChanges()">
+                                    <i class="far fa-edit"></i> Track Changes: On
+                                </button>
+                            </div>
+
+                            <div class="docx-status-right">
+                                <div class="docx-status-views">
+                                    <button type="button" class="docx-view-mode-btn active" id="viewModePrint" onclick="wordSetViewLayout('print')" title="Print Layout"><i class="far fa-file-alt"></i></button>
+                                    <button type="button" class="docx-view-mode-btn" id="viewModeWeb" onclick="wordSetViewLayout('web')" title="Web Layout"><i class="fas fa-globe"></i></button>
+                                    <button type="button" class="docx-view-mode-btn" id="viewModeRead" onclick="wordSetViewLayout('read')" title="Read Mode"><i class="fas fa-book-open"></i></button>
+                                </div>
+                                <div class="docx-status-zoom">
+                                    <button type="button" class="docx-zoom-btn" onclick="wordAdjustZoomStep(-10)" title="Zoom Out">-</button>
+                                    <input type="range" class="docx-zoom-slider" min="50" max="200" value="100" id="wordZoomRange" oninput="wordSetZoom(this.value)">
+                                    <button type="button" class="docx-zoom-btn" onclick="wordAdjustZoomStep(10)" title="Zoom In">+</button>
+                                    <span class="docx-zoom-pct" id="wordZoomDisplay">100%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
+
+                <!-- Python Regex Modal -->
+                <div id="word-python-regex-modal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content py-modal-dialog">
+                        <div class="modal-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fab fa-python" style="color: #38bdf8; font-size: 20px;"></i>
+                                <h3 style="margin: 0; font-size: 16px; color: #f8fafc;">Python Regex Search & Replace</h3>
+                            </div>
+                            <button class="modal-close-btn" onclick="closePythonRegexModal()">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 16px 20px;">
+                            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Use Python standard regex patterns (re module) to search and replace text across the document XML package.</p>
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; font-weight: 600;">Find Pattern (Regex / Plain text)</label>
+                                <input type="text" id="pyRegexFindInput" placeholder="e.g., \bDraft\b or NeuroCore" style="width: 100%; padding: 8px 12px; background: #111827; border: 1px solid #334155; border-radius: 6px; color: #f8fafc; font-family: monospace;">
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; font-weight: 600;">Replace With</label>
+                                <input type="text" id="pyRegexReplaceInput" placeholder="e.g., Final Version or NeuroCore Office" style="width: 100%; padding: 8px 12px; background: #111827; border: 1px solid #334155; border-radius: 6px; color: #f8fafc; font-family: monospace;">
+                            </div>
+                            <div id="pyRegexResultBox" style="display: none; padding: 10px; border-radius: 6px; font-size: 12px; background: #064e3b; color: #6ee7b7; border: 1px solid #047857;"></div>
+                        </div>
+                        <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" class="btn-docx-action" onclick="closePythonRegexModal()">Cancel</button>
+                            <button type="button" class="btn-docx-action btn-docx-primary" onclick="executePythonRegexReplace()">
+                                <i class="fab fa-python"></i> Run Python Replace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Python Script Playground Modal -->
+                <div id="word-python-playground-modal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content py-modal-dialog">
+                        <div class="modal-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-terminal" style="color: #fbbf24; font-size: 18px;"></i>
+                                <h3 style="margin: 0; font-size: 16px; color: #f8fafc;">Python Document Script Playground</h3>
+                            </div>
+                            <button class="modal-close-btn" onclick="closePythonPlaygroundModal()">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 16px 20px;">
+                            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Execute live Python 3 scripts to inspect, transform, or calculate document statistics.</p>
+                            <textarea id="pyScriptEditorArea" class="py-editor-codearea"># Access document stats or write custom transformations
+import sys, re
+
+text = """Project Report Draft"""
+words = len(re.findall(r'\b\w+\b', text))
+result = f"Analyzed {words} words in document. Status: OK"
+</textarea>
+                            <div style="margin-top: 8px; display: flex; gap: 8px;">
+                                <button type="button" class="btn-docx-action" onclick="loadPythonSnippet('count_words')">Word Count Snippet</button>
+                                <button type="button" class="btn-docx-action" onclick="loadPythonSnippet('format_text')">Text Clean Snippet</button>
+                                <button type="button" class="btn-docx-action" onclick="loadPythonSnippet('extract_headings')">Extract Headings</button>
+                            </div>
+                            <div class="py-output-console" id="pyScriptOutputConsole">Ready. Output will appear here...</div>
+                        </div>
+                        <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" class="btn-docx-action" onclick="closePythonPlaygroundModal()">Close</button>
+                            <button type="button" class="btn-docx-action btn-docx-primary" onclick="runPythonPlaygroundCode()">
+                                <i class="fas fa-play"></i> Execute Script
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Word Find & Replace Modal -->
+                <div id="word-find-replace-modal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content" style="max-width: 480px;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-magnifying-glass"></i> Find and Replace</h3>
+                            <button class="modal-close-btn" onclick="closeWordFindReplaceModal()">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 16px 20px;">
+                            <div style="margin-bottom: 12px;">
+                                <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px;">Find What:</label>
+                                <input type="text" id="wordFindInput" placeholder="Enter text to find..." style="width: 100%; padding: 8px 12px; background: #111827; border: 1px solid #334155; border-radius: 6px; color: #f8fafc;">
+                            </div>
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px;">Replace With:</label>
+                                <input type="text" id="wordReplaceInput" placeholder="Enter replacement text..." style="width: 100%; padding: 8px 12px; background: #111827; border: 1px solid #334155; border-radius: 6px; color: #f8fafc;">
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" class="btn-docx-action" onclick="closeWordFindReplaceModal()">Cancel</button>
+                            <button type="button" class="btn-docx-action btn-docx-primary" onclick="wordPerformFindReplace()">Replace All</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Word Symbols Modal -->
+                <div id="word-symbols-modal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content" style="max-width: 440px;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-icons"></i> Insert Special Symbol</h3>
+                            <button class="modal-close-btn" onclick="closeWordSymbolsModal()">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding: 16px 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; font-size: 18px; text-align: center;">
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('©')">©</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('®')">®</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('™')">™</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('€')">€</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('£')">£</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('¥')">¥</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('§')">§</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('¶')">¶</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('•')">•</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('→')">→</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('←')">←</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('↑')">↑</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('↓')">↓</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('≠')">≠</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('≤')">≤</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('≥')">≥</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('±')">±</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('π')">π</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('∞')">∞</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('√')">√</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('★')">★</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('✔')">✔</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('⚡')">⚡</button>
+                                <button type="button" class="ribbon-btn" onclick="wordInsertSymbol('❤')">❤</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </main>
         </div>
@@ -1002,6 +2566,65 @@
     <!-- ===================================== -->
     <!-- Modals & Overlays -->
     <!-- ===================================== -->
+
+    <!-- Profile & Workspace Settings Modal -->
+    <div id="profile-settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content profile-settings-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <div class="modal-title-icon"><i class="fas fa-user-circle"></i></div>
+                    <h3>Account & Workspace Profile</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closeProfileSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body profile-settings-body">
+                <div class="profile-preview-card">
+                    <div class="profile-avatar-large" id="modalAvatarInitial">N</div>
+                    <div class="profile-preview-meta">
+                        <h4 id="modalPreviewName">Neuro User</h4>
+                        <span id="modalPreviewPlan" class="profile-badge-pill">Premium Workspace</span>
+                        <span id="modalPreviewTimeGreeting" class="profile-greeting-preview">"Good morning, Neuro User 👋"</span>
+                    </div>
+                </div>
+
+                <div class="form-group-block">
+                    <label for="profileInputName" class="form-label"><i class="fas fa-signature"></i> Display Name</label>
+                    <input type="text" id="profileInputName" class="form-control-input" placeholder="Enter your name (e.g. Alex, Morgan, Nagesh)" maxlength="40">
+                    <span class="form-hint">This name appears in your workspace greeting, document stamps, and top profile.</span>
+                </div>
+
+                <div class="form-group-block">
+                    <label for="profileInputEmail" class="form-label"><i class="fas fa-envelope"></i> Email Address</label>
+                    <input type="email" id="profileInputEmail" class="form-control-input" placeholder="user@neurocore.ai">
+                </div>
+
+                <div class="form-group-block">
+                    <label for="profileGreetingStyle" class="form-label"><i class="fas fa-sun"></i> Greeting Style</label>
+                    <select id="profileGreetingStyle" class="form-control-input">
+                        <option value="time-based">Time of Day (Good morning / afternoon / evening)</option>
+                        <option value="warm">Warm & Welcoming ("Welcome back, [Name]")</option>
+                        <option value="energetic">Energetic Workspace ("Let's create, [Name] 🚀")</option>
+                        <option value="minimal">Minimalist ("Hello, [Name]")</option>
+                    </select>
+                </div>
+
+                <div class="form-group-block">
+                    <label class="form-label"><i class="fas fa-sliders-h"></i> Workspace Title / Role</label>
+                    <input type="text" id="profileInputRole" class="form-control-input" placeholder="e.g. Lead Researcher, Workspace Admin">
+                </div>
+            </div>
+
+            <div class="modal-footer profile-settings-footer">
+                <button type="button" class="action-btn btn-secondary" onclick="resetDefaultProfile()">Reset Default</button>
+                <div class="footer-actions-right">
+                    <button type="button" class="action-btn btn-secondary" onclick="closeProfileSettingsModal()">Cancel</button>
+                    <button type="button" class="action-btn btn-primary" onclick="saveProfileSettings()">
+                        <i class="fas fa-check"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- "Coming Soon" Modal for Roadmap Features -->
     <div id="coming-soon-modal" class="modal-overlay" style="display: none;">
